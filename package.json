@@ -1,0 +1,57 @@
+{
+  "name": "agent-dna",
+  "displayName": "AgentDNA",
+  "description": "Sync your AI agent's DNA across projects - share AGENT.md rules via GitHub",
+  "version": "0.1.0",
+  "publisher": "your-publisher-id",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agentDna.sync",
+        "title": "AgentDNA: Sync"
+      }
+    ],
+    "configuration": {
+      "title": "AgentDNA",
+      "properties": {
+        "agentDna.repoUrl": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub repository URL for agent rules (e.g., https://github.com/user/rules.git)"
+        },
+        "agentDna.githubToken": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub Personal Access Token (PAT) for private repos. Create at: Settings > Developer settings > Personal access tokens"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.x",
+    "@typescript-eslint/parser": "^6.x",
+    "eslint": "^8.x",
+    "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "simple-git": "^3.22.0"
+  }
+}

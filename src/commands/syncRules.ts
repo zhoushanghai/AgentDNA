@@ -1,0 +1,89 @@
+import * as vscode from 'vscode';
+import { GitService } from '../services/GitService';
+import { LinkService } from '../services/LinkService';
+
+export async function syncRules(): Promise<void> {
+    const gitService = new GitService();
+    const linkService = new LinkService();
+
+    // 1. Get repo URL and token from configuration
+    const config = vscode.workspace.getConfiguration('agentDna');
+    const repoUrl = config.get<string>('repoUrl');
+    const githubToken = config.get<string>('githubToken');
+
+    if (!repoUrl) {
+        const action = await vscode.window.showErrorMessage(
+            'AgentDNA: 请先配置仓库 URL',
+            '打开设置'
+        );
+        if (action === '打开设置') {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'agentDna.repoUrl');
+        }
+        return;
+    }
+
+    // 2. Get workspace root
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('AgentDNA: 请先打开一个工作区');
+        return;
+    }
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+    try {
+        // 3. Show progress while syncing
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'AgentDNA',
+                cancellable: false
+            },
+            async (progress) => {
+                // Clone or update repository
+                progress.report({ message: '正在同步仓库...' });
+                await gitService.syncRepo(repoUrl, githubToken);
+
+                // Check if AGENT.md exists in repo
+                if (!gitService.hasAgentMd()) {
+                    vscode.window.showErrorMessage('AgentDNA: 仓库中未找到 AGENT.md 文件');
+                    return;
+                }
+
+                // Check if AGENT.md already exists in workspace
+                const targetPath = linkService.getWorkspaceAgentMdPath(workspaceRoot);
+
+                if (linkService.fileExists(targetPath)) {
+                    // If it's already a symlink pointing to our file, just update
+                    if (linkService.isSymlink(targetPath)) {
+                        vscode.window.showInformationMessage('AgentDNA: 规则已是最新！');
+                        return;
+                    }
+
+                    // Ask user to confirm overwrite
+                    const confirm = await vscode.window.showWarningMessage(
+                        'AGENT.md 已存在，是否覆盖？',
+                        '是',
+                        '否'
+                    );
+
+                    if (confirm !== '是') {
+                        vscode.window.showInformationMessage('AgentDNA: 操作已取消');
+                        return;
+                    }
+
+                    // Remove existing file
+                    linkService.remove(targetPath);
+                }
+
+                // Create symlink
+                progress.report({ message: '正在创建软链接...' });
+                await linkService.createSymlink(gitService.getAgentMdPath(), targetPath);
+
+                vscode.window.showInformationMessage('AgentDNA: 同步成功！AGENT.md 已链接到项目根目录');
+            }
+        );
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`AgentDNA 同步失败: ${errorMessage}`);
+    }
+}
