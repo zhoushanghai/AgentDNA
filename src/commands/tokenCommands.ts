@@ -2,9 +2,14 @@ import * as vscode from 'vscode';
 import { TokenManager } from '../services/TokenManager';
 
 export async function setToken(): Promise<void> {
+    const hasToken = !!(await TokenManager.getInstance().getToken());
+    const prompt = hasToken
+        ? '⚠️ 当前已设置 Token。输入新 Token 将覆盖原有设置 (留空取消)'
+        : '请输入您的 GitHub Personal Access Token (权限: repo)';
+
     const token = await vscode.window.showInputBox({
-        title: '设置 GitHub Token',
-        prompt: '请输入您的 GitHub Personal Access Token (权限: repo)',
+        title: hasToken ? '更新 GitHub Token' : '设置 GitHub Token',
+        prompt: prompt,
         password: true, // Hide input
         placeHolder: 'ghp_xxxxxxxxxxxxxxxxxxxx'
     });
