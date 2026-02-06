@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { syncRules } from './commands/syncRules';
 import { setToken, deleteToken } from './commands/tokenCommands';
+import { showMenu } from './commands/showMenu';
 import { TokenManager } from './services/TokenManager';
 
 let statusBarItem: vscode.StatusBarItem;
@@ -15,14 +16,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('agentDna.sync', syncRules),
         vscode.commands.registerCommand('agentDna.setToken', setToken),
-        vscode.commands.registerCommand('agentDna.deleteToken', deleteToken)
+        vscode.commands.registerCommand('agentDna.deleteToken', deleteToken),
+        vscode.commands.registerCommand('agentDna.showMenu', showMenu)
     );
 
     // Create status bar item
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarItem.command = 'agentDna.sync';
+    statusBarItem.command = 'agentDna.showMenu'; // Change to show menu
     statusBarItem.text = '$(sync) AgentDNA';
-    statusBarItem.tooltip = 'Click to sync AGENT.md from GitHub';
+    statusBarItem.tooltip = 'Click to open AgentDNA dashboard';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
 }
