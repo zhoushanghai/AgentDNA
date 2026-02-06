@@ -1,14 +1,22 @@
 import * as vscode from 'vscode';
 import { syncRules } from './commands/syncRules';
+import { setToken, deleteToken } from './commands/tokenCommands';
+import { TokenManager } from './services/TokenManager';
 
 let statusBarItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AgentDNA is now active!');
 
-    // Register sync command
-    const syncCommand = vscode.commands.registerCommand('agentDna.sync', syncRules);
-    context.subscriptions.push(syncCommand);
+    // Initialize TokenManager
+    TokenManager.init(context);
+
+    // Register commands
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agentDna.sync', syncRules),
+        vscode.commands.registerCommand('agentDna.setToken', setToken),
+        vscode.commands.registerCommand('agentDna.deleteToken', deleteToken)
+    );
 
     // Create status bar item
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);

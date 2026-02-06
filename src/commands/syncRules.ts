@@ -1,15 +1,18 @@
 import * as vscode from 'vscode';
 import { GitService } from '../services/GitService';
 import { LinkService } from '../services/LinkService';
+import { TokenManager } from '../services/TokenManager';
 
 export async function syncRules(): Promise<void> {
     const gitService = new GitService();
     const linkService = new LinkService();
 
-    // 1. Get repo URL and token from configuration
+    // 1. Get repo URL from configuration
     const config = vscode.workspace.getConfiguration('agentDna');
     const repoUrl = config.get<string>('repoUrl');
-    const githubToken = config.get<string>('githubToken');
+
+    // Get token from secure storage
+    const githubToken = await TokenManager.getInstance().getToken();
 
     if (!repoUrl) {
         const action = await vscode.window.showErrorMessage(
@@ -53,9 +56,9 @@ export async function syncRules(): Promise<void> {
                 const targetPath = linkService.getWorkspaceAgentMdPath(workspaceRoot);
 
                 if (linkService.fileExists(targetPath)) {
-                    // If it's already a symlink pointing to our file, just update
+                    // If it's already a symlink pointing to our file, git pull was already done
                     if (linkService.isSymlink(targetPath)) {
-                        vscode.window.showInformationMessage('AgentDNA: 规则已是最新！');
+                        vscode.window.showInformationMessage('AgentDNA: 同步完成！规则已更新到最新版本');
                         return;
                     }
 

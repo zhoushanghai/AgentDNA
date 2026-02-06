@@ -28,11 +28,6 @@
           "type": "string",
           "default": "",
           "description": "GitHub repository URL for agent rules (e.g., https://github.com/user/rules.git)"
-        },
-        "agentDna.githubToken": {
-          "type": "string",
-          "default": "",
-          "description": "GitHub Personal Access Token (PAT) for private repos. Create at: Settings > Developer settings > Personal access tokens"
         }
       }
     }
