@@ -107,11 +107,13 @@ export class SetupWebview {
                 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
+                <style>
                     body {
                         font-family: var(--vscode-font-family);
                         padding: 20px;
                         color: var(--vscode-foreground);
                         background-color: var(--vscode-editor-background);
+                        font-size: 1.1em; /* Increased base font size */
                     }
                     .container {
                         max-width: 700px;
@@ -119,52 +121,53 @@ export class SetupWebview {
                     }
                     .section-header {
                         margin-top: 30px;
-                        margin-bottom: 5px;
-                        font-size: 1.1em;
+                        margin-bottom: 8px;
+                        font-size: 1.3em; /* Proportional increase */
                         font-weight: 600;
                         color: var(--vscode-editor-foreground);
                     }
                     .section-desc {
                         margin-top: 0;
-                        margin-bottom: 15px;
-                        font-size: 0.9em;
+                        margin-bottom: 20px;
+                        font-size: 1em;
                         color: var(--vscode-descriptionForeground);
                     }
                     .card {
-                        background-color: var(--vscode-editor-inactiveSelectionBackground); /* Subtle card background */
+                        background-color: var(--vscode-editor-inactiveSelectionBackground);
                         border: 1px solid var(--vscode-widget-border);
                         border-radius: 6px;
                         padding: 20px;
                         margin-bottom: 25px;
                     }
                     .form-group {
-                        margin-bottom: 20px;
+                        margin-bottom: 24px;
                     }
                     label {
                         display: block;
                         margin-bottom: 8px;
                         font-weight: 600;
-                        font-size: 0.95em;
+                        font-size: 1em;
                     }
                     input[type="text"], input[type="password"] {
                         width: 100%;
-                        padding: 8px 12px;
+                        padding: 10px 12px;
                         border: 1px solid var(--vscode-input-border);
                         background-color: var(--vscode-input-background);
                         color: var(--vscode-input-foreground);
                         border-radius: 4px;
                         box-sizing: border-box;
                         font-family: var(--vscode-editor-font-family);
+                        font-size: 1em;
                     }
                     input:focus {
                         outline: 1px solid var(--vscode-focusBorder);
                         border-color: var(--vscode-focusBorder);
                     }
                     .help-text {
-                        font-size: 0.85em;
+                        font-size: 0.9em;
                         color: var(--vscode-descriptionForeground);
-                        margin-top: 6px;
-                        line-height: 1.4;
+                        margin-top: 8px;
+                        line-height: 1.5;
                     }
                     a {
                         color: var(--vscode-textLink-foreground);
@@ -173,40 +176,54 @@ export class SetupWebview {
                     a:hover {
                         text-decoration: underline;
                     }
+                    /* Primary Button (Green) */
                     .btn-primary {
-                        padding: 6px 16px;
+                        padding: 8px 20px;
                         background-color: #2ea043; /* GitHub Green */
                         color: #ffffff;
                         border: 1px solid rgba(27, 31, 35, 0.15);
                         cursor: pointer;
                         font-size: 14px;
-                        font-weight: 500;
+                        font-weight: 600;
                         border-radius: 6px;
                         line-height: 20px;
+                        transition: background-color 0.2s, transform 0.1s;
                     }
                     .btn-primary:hover {
-                        background-color: #2c974b;
+                        background-color: #3fb950; /* Brighter Green for obvious hover */
                     }
+                    .btn-primary:active {
+                        background-color: #238636;
+                        transform: translateY(2px);
+                        box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+                    }
+
                     .danger-zone-card {
                         border: 1px solid var(--vscode-errorForeground);
                         background-color: transparent;
                         border-radius: 6px;
                         padding: 20px;
                     }
+                    
+                    /* Danger Button (Red) */
                     .btn-danger {
-                        padding: 6px 16px;
-                        background-color: var(--vscode-button-secondaryBackground);
-                        color: var(--vscode-errorForeground);
-                        border: 1px solid var(--vscode-widget-border);
+                        padding: 8px 20px;
+                        background-color: #d73a49; /* Solid Red */
+                        color: #ffffff;
+                        border: 1px solid rgba(27, 31, 35, 0.15);
                         cursor: pointer;
                         font-size: 14px;
-                        font-weight: 500;
+                        font-weight: 600;
                         border-radius: 6px;
-                        transition: all 0.2s;
+                        transition: background-color 0.2s, transform 0.1s;
                     }
                     .btn-danger:hover {
-                        background-color: var(--vscode-errorForeground);
-                        color: #ffffff;
+                        background-color: #ff4d5e; /* Brighter Red for obvious hover */
+                    }
+                    .btn-danger:active {
+                        background-color: #b31d28;
+                        transform: translateY(2px);
+                        box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
                     }
                 </style>
             </head>
