@@ -168,43 +168,7 @@ async function setRepoUrl(): Promise<void> {
 }
 
 async function quickSetup(): Promise<void> {
-    const config = vscode.workspace.getConfiguration('agentDna');
-    const currentUrl = config.get<string>('repoUrl') || '';
-
-    // Step 1: Repo URL
-    const repoUrl = await vscode.window.showInputBox({
-        title: '配置向导 (1/2): 仓库地址',
-        prompt: '请输入 GitHub 仓库 URL',
-        value: currentUrl,
-        placeHolder: 'https://github.com/user/rules.git',
-        ignoreFocusOut: true
-    });
-
-    if (repoUrl === undefined) { return; } // Cancelled
-
-    // Step 2: Token
-    const currentToken = await TokenManager.getInstance().getToken();
-    const token = await vscode.window.showInputBox({
-        title: '配置向导 (2/2): GitHub Token (可选)',
-        prompt: '如果是私有仓库请输入 Token，否则直接回车跳过',
-        placeHolder: currentToken ? '保持现有 Token 不变 (直接回车)' : 'ghp_xxxxxxxxxxxxxxxxxxxx',
-        password: true,
-        ignoreFocusOut: true
-    });
-
-    if (token === undefined) { return; } // Cancelled
-
-    // Save Setup
-    if (repoUrl) {
-        await config.update('repoUrl', repoUrl, vscode.ConfigurationTarget.Global);
-    }
-
-    if (token) {
-        await TokenManager.getInstance().setToken(token);
-    }
-
-    vscode.window.showInformationMessage('AgentDNA: 配置已完成！');
-    showMenu();
+    await vscode.commands.executeCommand('agentDna.openSetupWebview');
 }
 
 async function deleteConfiguration(): Promise<void> {
