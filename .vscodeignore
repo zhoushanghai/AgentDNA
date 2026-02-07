@@ -6,3 +6,8 @@ tsconfig.json
 **/*.map
 node-v*
 *.tar.xz
+PROJECT_DOCS.md
+STRUCTURE.md
+implement.md
+PUBLISHING.md
+brain/
