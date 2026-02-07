@@ -3,6 +3,7 @@ import { syncRules } from './commands/syncRules';
 import { setToken, deleteToken } from './commands/tokenCommands';
 import { showMenu } from './commands/showMenu';
 import { TokenManager } from './services/TokenManager';
+import { SetupWebview } from './commands/setupWebview';
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -17,7 +18,9 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('agentDna.sync', syncRules),
         vscode.commands.registerCommand('agentDna.setToken', setToken),
         vscode.commands.registerCommand('agentDna.deleteToken', deleteToken),
-        vscode.commands.registerCommand('agentDna.showMenu', showMenu)
+        vscode.commands.registerCommand('agentDna.showMenu', showMenu),
+        vscode.commands.registerCommand('agentDna.openSetupWebview', () => SetupWebview.createOrShow(context.extensionUri)),
+        vscode.commands.registerCommand('agentDna.quickSetup', () => vscode.commands.executeCommand('agentDna.openSetupWebview'))
     );
 
     // Create status bar item

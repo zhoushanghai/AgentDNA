@@ -3,7 +3,7 @@
   "displayName": "AgentDNA",
   "description": "Sync your AI agent's DNA across projects - share AGENT.md rules via GitHub",
   "version": "0.1.0",
-  "publisher": "your-publisher-id",
+  "publisher": "HaizhouWang",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -19,6 +19,10 @@
       {
         "command": "agentDna.sync",
         "title": "AgentDNA: Sync"
+      },
+      {
+        "command": "agentDna.quickSetup",
+        "title": "AgentDNA: Quick Setup"
       }
     ],
     "configuration": {
@@ -28,6 +32,11 @@
           "type": "string",
           "default": "",
           "description": "GitHub repository URL for agent rules (e.g., https://github.com/user/rules.git)"
+        },
+        "agentDna.includeInGit": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to include AGENT.md in Git version control. If false (default), it will be added to .gitignore."
         }
       }
     }

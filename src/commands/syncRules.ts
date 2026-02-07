@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { GitService } from '../services/GitService';
 import { LinkService } from '../services/LinkService';
 import { TokenManager } from '../services/TokenManager';
+import { GitIgnoreService } from '../services/GitIgnoreService';
 
 export async function syncRules(): Promise<void> {
     const gitService = new GitService();
@@ -32,6 +35,20 @@ export async function syncRules(): Promise<void> {
         return;
     }
     const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+    // Check if current directory is a git repository
+    const gitDir = path.join(workspaceRoot, '.git');
+    if (!fs.existsSync(gitDir)) {
+        const confirm = await vscode.window.showWarningMessage(
+            'AgentDNA: 当前目录似乎不是一个 Git 仓库。是否确认在此处导入 AGENT.md？',
+            '确认导入',
+            '取消'
+        );
+
+        if (confirm !== '确认导入') {
+            return;
+        }
+    }
 
     try {
         // 3. Show progress while syncing
@@ -81,6 +98,11 @@ export async function syncRules(): Promise<void> {
                 // Create symlink
                 progress.report({ message: '正在创建软链接...' });
                 await linkService.createSymlink(gitService.getAgentMdPath(), targetPath);
+
+                // Update .gitignore based on preference
+                const includeInGit = config.get<boolean>('includeInGit', false);
+                const gitIgnoreService = new GitIgnoreService();
+                gitIgnoreService.update(workspaceRoot, includeInGit);
 
                 vscode.window.showInformationMessage('AgentDNA: 同步成功！AGENT.md 已链接到项目根目录');
             }

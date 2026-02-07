@@ -28,6 +28,14 @@ AgentDNA 是一个 VS Code 插件，用于从 GitHub 仓库同步 `AGENT.md` 规
 - SSH Key：`~/.ssh/id_rsa` 或 `~/.ssh/id_ed25519`
 - 或 Git Credential Manager
 
+## 规则存储位置
+
+为了支持多平台，`AGENT.md` 会被存储在不同系统的标准配置目录下：
+
+- **Windows**: `%APPDATA%\AgentDNA`
+- **macOS**: `~/Library/Application Support/AgentDNA`
+- **Linux**: `~/.agent_dna`
+
 ## License
 
 MIT

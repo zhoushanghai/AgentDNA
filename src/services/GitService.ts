@@ -11,7 +11,28 @@ export class GitService {
     private rulesDir: string;
 
     constructor() {
-        this.rulesDir = path.join(os.homedir(), '.agent_dna');
+        this.rulesDir = this.getPlatformSpecificRulesDir();
+    }
+
+    /**
+     * Get the platform-specific directory for storing rules
+     */
+    private getPlatformSpecificRulesDir(): string {
+        const platform = process.platform;
+        const homeDir = os.homedir();
+
+        switch (platform) {
+            case 'win32':
+                // Windows: %APPDATA%/AgentDNA
+                return path.join(process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), 'AgentDNA');
+            case 'darwin':
+                // macOS: ~/Library/Application Support/AgentDNA
+                return path.join(homeDir, 'Library', 'Application Support', 'AgentDNA');
+            case 'linux':
+            default:
+                // Linux/Other: ~/.agent_dna
+                return path.join(homeDir, '.agent_dna');
+        }
     }
 
     /**
