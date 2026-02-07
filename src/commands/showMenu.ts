@@ -40,34 +40,16 @@ export async function showMenu(): Promise<void> {
         } as any);
     }
 
+    // Settings
     items.push({
-        label: '$(gear) 设置',
-        description: '配置仓库地址和 Token',
+        label: '$(settings) 设置',
+        detail: '配置仓库地址和 Token', // Moved to detail for bottom placement
         command: 'agentDna.showSettings'
     } as any);
 
-    // Git Tracking Option
-    if (workspaceFolders && workspaceFolders.length > 0) {
-        const workspaceRoot = workspaceFolders[0].uri.fsPath;
-        const gitIgnoreService = new GitIgnoreService();
-
-        if (gitIgnoreService.hasGitIgnore(workspaceRoot)) {
-            const includeInGit = config.get<boolean>('includeInGit', false);
-            items.push({
-                label: includeInGit ? '$(check) Git 追踪: 已启用' : '$(circle-slash) Git 追踪: 已禁用',
-                description: includeInGit ? 'AGENT.md 将被提交到仓库' : 'AGENT.md 被忽略 (推荐)',
-                detail: '点击切换是否将规则文件加入版本控制',
-                command: 'agentDna.toggleGitTracking' // Custom command handled below
-            } as any);
-        } else {
-            items.push({
-                label: '$(circle-slash) Git 追踪: 不可用',
-                description: '当前目录未找到 .gitignore 文件',
-                detail: '请先创建 .gitignore 文件以启用此功能',
-                command: 'agentDna.showGitIgnoreInfo'
-            } as any);
-        }
-    }
+    /* Git Tracking Option - Hidden by User Request
+    if (workspaceFolders && workspaceFolders.length > 0) { ... }
+    */
 
     // Show menu
     const selection = await vscode.window.showQuickPick(items, {
