@@ -18,7 +18,15 @@
     "commands": [
       {
         "command": "agentDna.sync",
-        "title": "AgentDNA: Sync"
+        "title": "AgentDNA: Sync (Pull)"
+      },
+      {
+        "command": "agentDna.publish",
+        "title": "AgentDNA: Publish (Push)"
+      },
+      {
+        "command": "agentDna.syncToLocalProjects",
+        "title": "AgentDNA: Sync Local Projects"
       },
       {
         "command": "agentDna.quickSetup",

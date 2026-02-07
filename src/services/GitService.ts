@@ -108,9 +108,30 @@ export class GitService {
     /**
      * Pull latest changes from remote
      */
-    async pull(): Promise<void> {
-        const git = simpleGit(this.rulesDir);
-        await git.pull();
+    async pull(repoUrl?: string, token?: string): Promise<void> {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+
+        try {
+            // Update remote URL if repoUrl and token are provided
+            if (repoUrl) {
+                const authenticatedUrl = this.getAuthenticatedUrl(repoUrl, token);
+                await execAsync(`git -C "${this.rulesDir}" remote set-url origin "${authenticatedUrl}"`, { env });
+            }
+
+            // Pull
+            // Use --rebase to avoid merge commits and handle divergent histories cleaner
+            // Use --autostash to temporarily stash local changes if any appear (though usually we commit them)
+            await execAsync(`git -C "${this.rulesDir}" pull --rebase --autostash`, { env });
+        } catch (error: any) {
+            const errMsg = error.message || error.stderr || '';
+
+            if (errMsg.includes('ould not read Password') ||
+                errMsg.includes('Authentication failed') ||
+                errMsg.includes('Permission denied')) {
+                throw new Error('认证失败。请检查 GitHub Token 是否正确且未过期。');
+            }
+            throw new Error(`Pull Failed: ${errMsg}`);
+        }
     }
 
     /**
@@ -118,7 +139,7 @@ export class GitService {
      */
     async syncRepo(repoUrl: string, token?: string): Promise<void> {
         if (this.isRepoExists()) {
-            await this.pull();
+            await this.pull(repoUrl, token);
         } else {
             await this.clone(repoUrl, token);
         }
@@ -136,5 +157,33 @@ export class GitService {
      */
     getAgentMdPath(): string {
         return path.join(this.rulesDir, 'AGENT.md');
+    }
+
+    /**
+     * Commit and push changes to the repository
+     */
+    async commitAndPush(message: string, token?: string): Promise<void> {
+        // Use git command directly
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+
+        try {
+            // Check if there are changes
+            const status = await execAsync(`git -C "${this.rulesDir}" status --porcelain`, { env });
+            if (!status.stdout || status.stdout.trim() === '') {
+                return; // No changes
+            }
+
+            // Git Add
+            await execAsync(`git -C "${this.rulesDir}" add .`, { env });
+
+            // Git Commit
+            await execAsync(`git -C "${this.rulesDir}" commit -m "${message}"`, { env });
+
+            // Git Push
+            await execAsync(`git -C "${this.rulesDir}" push`, { env });
+        } catch (error: any) {
+            const errMsg = error.message || error.stderr || '';
+            throw new Error(`Git Operation Failed: ${errMsg}`);
+        }
     }
 }

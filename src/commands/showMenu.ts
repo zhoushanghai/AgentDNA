@@ -2,19 +2,34 @@ import * as vscode from 'vscode';
 import { TokenManager } from '../services/TokenManager';
 import { GitIgnoreService } from '../services/GitIgnoreService';
 
+import { ProjectRegistry } from '../services/ProjectRegistry';
+
 export async function showMenu(): Promise<void> {
     const config = vscode.workspace.getConfiguration('agentDna');
     const repoUrl = config.get<string>('repoUrl');
+
+    // Register current project if workspace is open
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+        ProjectRegistry.getInstance().addProject(workspaceFolders[0].uri.fsPath);
+    }
 
     // Main Menu Items
     const items: vscode.QuickPickItem[] = [];
 
     if (repoUrl) {
         items.push({
-            label: '$(sync) 立即同步',
-            description: '从 GitHub 同步 AGENT.md',
+            label: '$(sync) 立即同步 (Pull)',
+            description: '从 GitHub 拉取最新 AGENT.md (覆盖本地)',
             detail: `Repo: ${repoUrl}`,
             command: 'agentDna.sync'
+        } as any);
+
+        items.push({
+            label: '$(cloud-upload) 发布规则 (Publish)',
+            description: '将本地修改推送到 GitHub',
+            detail: '会自动提交并在其他项目中同步',
+            command: 'agentDna.publish'
         } as any);
     } else {
         items.push({
@@ -32,7 +47,6 @@ export async function showMenu(): Promise<void> {
     } as any);
 
     // Git Tracking Option
-    const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders && workspaceFolders.length > 0) {
         const workspaceRoot = workspaceFolders[0].uri.fsPath;
         const gitIgnoreService = new GitIgnoreService();

@@ -95,16 +95,16 @@ export async function syncRules(): Promise<void> {
                     linkService.remove(targetPath);
                 }
 
-                // Create symlink
-                progress.report({ message: '正在创建软链接...' });
-                await linkService.createSymlink(gitService.getAgentMdPath(), targetPath);
+                // Create copy (instead of symlink)
+                progress.report({ message: '正在复制规则文件...' });
+                await linkService.copyFile(gitService.getAgentMdPath(), targetPath);
 
                 // Update .gitignore based on preference
                 const includeInGit = config.get<boolean>('includeInGit', false);
                 const gitIgnoreService = new GitIgnoreService();
                 gitIgnoreService.update(workspaceRoot, includeInGit);
 
-                vscode.window.showInformationMessage('AgentDNA: 同步成功！AGENT.md 已链接到项目根目录');
+                vscode.window.showInformationMessage('AgentDNA: 同步成功！AGENT.md 已更新 (本地副本模式)');
             }
         );
     } catch (error) {

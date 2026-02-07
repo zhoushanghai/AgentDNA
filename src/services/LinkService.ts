@@ -47,6 +47,22 @@ export class LinkService {
     }
 
     /**
+     * Create a copy of the file from source to target
+     * @param sourcePath The actual file location
+     * @param targetPath The destination location
+     */
+    async copyFile(sourcePath: string, targetPath: string): Promise<void> {
+        // Ensure the target directory exists
+        const targetDir = path.dirname(targetPath);
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+
+        // Copy file
+        await fs.promises.copyFile(sourcePath, targetPath);
+    }
+
+    /**
      * Get the target path for AGENT.md in the workspace
      */
     getWorkspaceAgentMdPath(workspaceRoot: string): string {
