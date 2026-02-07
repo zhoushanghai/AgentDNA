@@ -65,9 +65,9 @@ export async function showMenu(): Promise<void> {
         const item = selection as any;
         if (item.command) {
             if (item.command === 'agentDna.showSettings') {
-                await showSettingsSubMenu();
+                await vscode.commands.executeCommand('agentDna.openSetupWebview');
             } else if (item.command === 'agentDna.quickSetup') {
-                await quickSetup();
+                await vscode.commands.executeCommand('agentDna.openSetupWebview');
             } else if (item.command === 'agentDna.toggleGitTracking') {
                 const current = config.get<boolean>('includeInGit', false);
                 await config.update('includeInGit', !current, vscode.ConfigurationTarget.Global);
@@ -79,114 +79,6 @@ export async function showMenu(): Promise<void> {
                 vscode.commands.executeCommand(item.command);
             }
         }
-    }
-}
-
-async function showSettingsSubMenu(): Promise<void> {
-    const config = vscode.workspace.getConfiguration('agentDna');
-    const repoUrl = config.get<string>('repoUrl') || '';
-    const hasToken = !!(await TokenManager.getInstance().getToken());
-
-    const items: vscode.QuickPickItem[] = [
-        {
-            label: '$(wand) 配置向导',
-            description: '重新运行初始配置',
-            detail: '一步配置仓库地址和 Token',
-            command: 'agentDna.quickSetup'
-        } as any,
-        {
-            label: '$(link) 修改仓库地址',
-            description: repoUrl || '未配置',
-            detail: '单独修改仓库 URL',
-            command: 'agentDna.setRepoUrl'
-        } as any,
-        {
-            label: hasToken ? '$(check) 修改 GitHub Token' : '$(key) 配置 GitHub Token',
-            description: hasToken ? '已设置' : '未设置',
-            detail: '单独修改访问令牌',
-            command: 'agentDna.setToken'
-        } as any
-    ];
-
-    // Add Delete Configuration section separator or group
-    items.push({
-        label: '$(trash) 删除所有配置',
-        description: '清除仓库地址和 Token',
-        detail: '重置插件到初始状态',
-        command: 'agentDna.deleteConfiguration'
-    } as any);
-
-    // Add Back option
-    items.push({
-        label: '$(arrow-left) 返回主菜单',
-        command: 'agentDna.showMenu'
-    } as any);
-
-    const selection = await vscode.window.showQuickPick(items, {
-        placeHolder: '设置 - 选择配置项',
-        title: 'AgentDNA 设置'
-    });
-
-    if (selection) {
-        const item = selection as any;
-        if (item.command === 'agentDna.showMenu') {
-            showMenu();
-        } else if (item.command === 'agentDna.setRepoUrl') {
-            await setRepoUrl();
-        } else if (item.command === 'agentDna.quickSetup') {
-            await quickSetup();
-        } else if (item.command === 'agentDna.deleteConfiguration') {
-            await deleteConfiguration();
-        } else {
-            await vscode.commands.executeCommand(item.command);
-            // Re-open submenu to show updated state
-            if (item.command !== 'agentDna.showMenu') {
-                showSettingsSubMenu();
-            }
-        }
-    }
-}
-
-async function setRepoUrl(): Promise<void> {
-    const config = vscode.workspace.getConfiguration('agentDna');
-    const currentUrl = config.get<string>('repoUrl') || '';
-
-    const newUrl = await vscode.window.showInputBox({
-        title: '设置规则仓库地址',
-        prompt: '请输入 GitHub 仓库 URL (例如 git@github.com:user/rules.git)',
-        value: currentUrl,
-        placeHolder: 'https://github.com/user/rules.git'
-    });
-
-    if (newUrl !== undefined) {
-        await config.update('repoUrl', newUrl, vscode.ConfigurationTarget.Global);
-        vscode.window.showInformationMessage(`AgentDNA: 仓库地址已更新`);
-        showSettingsSubMenu();
-    } else {
-        showSettingsSubMenu();
-    }
-}
-
-async function quickSetup(): Promise<void> {
-    await vscode.commands.executeCommand('agentDna.openSetupWebview');
-}
-
-async function deleteConfiguration(): Promise<void> {
-    const confirm = await vscode.window.showWarningMessage(
-        '确定要删除所有配置吗？(仓库地址和 Token 将被清除)',
-        '确定删除',
-        '取消'
-    );
-
-    if (confirm === '确定删除') {
-        const config = vscode.workspace.getConfiguration('agentDna');
-        await config.update('repoUrl', undefined, vscode.ConfigurationTarget.Global);
-        await TokenManager.getInstance().setToken(undefined);
-
-        vscode.window.showInformationMessage('AgentDNA: 所有配置已清除');
-        showMenu(); // Return to main menu (which should now show "Not Configured")
-    } else {
-        showSettingsSubMenu();
     }
 }
 

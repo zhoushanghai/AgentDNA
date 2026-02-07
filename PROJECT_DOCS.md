@@ -81,13 +81,8 @@ ai_rules_tool/AgentDNA/
     *   `立即同步`:
         *   若已配置仓库地址：正常触发同步。
         *   若未配置：显示为警示状态 `$(alert)`，点击触发配置向导 (Webview)。
-    *   `设置`: 进入二级设置菜单。
+    *   `设置`: 直接打开 Webview 配置页面，并行设置地址/Token，支持一键清除配置。
     *   `Git 追踪`: 快速切换是否忽略 `AGENT.md`。
-*   **设置子菜单**:
-    *   `配置向导`: 打开 Webview 配置页面，并行设置地址和 Token。
-    *   `修改仓库地址`: 单独修改 GitHub 仓库 URL。
-    *   `修改 GitHub Token`: 单独管理私有仓库访问令牌。
-    *   `删除所有配置`: 清除所有插件配置（重置状态）。
 
 ### 4.3 Git Service (`services/GitService.ts`)
 *   使用 `simple-git` 库。
