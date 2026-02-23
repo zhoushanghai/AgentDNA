@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 import { syncRules } from './commands/syncRules';
 import { publishRules } from './commands/publishRules';
-import { syncToLocalProjects } from './commands/syncToLocalProjects';
-import { setToken, deleteToken } from './commands/tokenCommands';
+import { forcePublishRules } from './commands/forcePublish';
 import { showMenu } from './commands/showMenu';
-import { TokenManager } from './services/TokenManager';
-import { ProjectRegistry } from './services/ProjectRegistry';
 import { SetupWebview } from './commands/setupWebview';
+import { TokenManager } from './services/TokenManager';
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -15,18 +13,16 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Initialize Services
     TokenManager.init(context);
-    ProjectRegistry.init(context);
 
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('agentDna.sync', syncRules),
         vscode.commands.registerCommand('agentDna.publish', publishRules),
-        vscode.commands.registerCommand('agentDna.syncToLocalProjects', syncToLocalProjects),
-        vscode.commands.registerCommand('agentDna.setToken', setToken),
-        vscode.commands.registerCommand('agentDna.deleteToken', deleteToken),
+        vscode.commands.registerCommand('agentDna.forcePublish', forcePublishRules),
         vscode.commands.registerCommand('agentDna.showMenu', showMenu),
-        vscode.commands.registerCommand('agentDna.openSetupWebview', () => SetupWebview.createOrShow(context.extensionUri)),
-        vscode.commands.registerCommand('agentDna.quickSetup', () => vscode.commands.executeCommand('agentDna.openSetupWebview'))
+        vscode.commands.registerCommand('agentDna.setup', () => {
+            SetupWebview.createOrShow(context.extensionUri);
+        })
     );
 
     // Create status bar item

@@ -1,47 +1,41 @@
 # AgentDNA
 
-> Sync your AI agent's DNA across projects
+> Sync your AI agent's DNA across projects - Rules, Workflows, and Skills
 
-AgentDNA 是一个 VS Code 插件，用于从 GitHub 仓库同步 `AGENT.md` 规则文件到你的项目中。
+AgentDNA 是一个 VS Code 插件，用于统一管理和同步 AI 编程工具（如 VS Code, Cursor, Antigravity）的三类全局文档：**Rules (GEMINI.md)**、**Workflows** 和 **Skills**。
 
-## 0.2.0 新特性
+## 0.3.0 (v3) 核心变更
 
-- **基于复制的同步**：不再使用软链接，而是直接复制文件，确保每个项目的规则文件独立且稳定。
-- **发布功能**：支持将本地修改的 `AGENT.md` 推送到远程仓库（需配置 Git 权限）。
-- **多项目同步**：更新规则后，可选择一键同步到所有已注册的本地项目。
-- **快速设置**：新的设置界面，方便配置仓库地址和 Token。
+- **多文档管理**：支持 Rules、Workflows 和 Skills 的统一同步。
+- **全局同步模式**：不再分发到各个工作区，而是直接管理本机的全局配置目录（`~/.gemini/`）。
+- **强制覆盖模式**：新增「强制推送」功能，允许以本机内容为权威覆盖远程仓库。
+- **跨平台路径解析**：自动适配 Windows、macOS 和 Linux 的全局配置路径。
 
 ## 核心功能
 
-1. **Pull (Sync)**: 从远程仓库拉取最新的 `AGENT.md` 到当前项目。
-2. **Push (Publish)**: 将当前项目的 `AGENT.md` 修改推送到远程仓库。
-3. **Sync Local**: 将最新的 `AGENT.md` 同步到本机其他使用 AgentDNA 的项目。
+1. **Pull (Sync from Global)**: 从远程仓库拉取最新的文档并部署到本机全局目录。
+2. **Push (Sync to Global)**: 将本机全局目录的修改合并推送到远程仓库（保守合并，不删除远程独有文件）。
+3. **Force Push (Overwrite Remote)**: 以本机内容为准，强制覆盖远程仓库（会删除远程独有文件）。
 
 ## 使用方法
 
 1. **快速设置**:
-   - 按 `Ctrl+Shift+P`，输入 `AgentDNA: Quick Setup` 打开设置页面。
-   - 配置 GitHub 仓库地址（支持 HTTPS 和 SSH）和 Personal Access Token (可选，私有仓库需要)。
+   - 按 `Ctrl+Shift+P`，输入 `AgentDNA: Settings` 打开设置界面。
+   - 配置 GitHub 仓库地址和 Personal Access Token（私有仓库推荐使用）。
+   - 在 **Sync Targets** 中勾选需要同步的内容（Rules / Workflows / Skills）。
 
 2. **日常使用**:
-   - **同步规则**：运行 `AgentDNA: Sync (Pull)` 或点击状态栏图标。
-   - **发布更新**：运行 `AgentDNA: Publish (Push)`。
-   - **同步到其他项目**：发布后根据提示，或手动运行 `AgentDNA: Sync Local Projects`。
+   - **同步**：运行 `AgentDNA: Pull (Sync from Global)`。
+   - **发布**：运行 `AgentDNA: Push (Sync to Global)`。
+   - **强制更新远程**：运行 `AgentDNA: Force Push (Overwrite Remote)`。
 
-## 配置项
+## 文档存储位置 (Global Paths)
 
-| 配置 | 说明 | 示例 |
-|------|------|------|
-| `agentDna.config` | 存储仓库地址和 Token 的内部配置（通过 Quick Setup 修改） | - |
-| `agentDna.includeInGit` | 是否将 AGENT.md 加入版本控制 (默认 false，会自动添加到 .gitignore) | `false` |
-
-## 规则存储位置
-
-为了支持多项目管理，AgentDNA 会在本地维护一个主副本（Master Copy），路径如下：
-
-- **Windows**: `%APPDATA%\AgentDNA`
-- **macOS**: `~/Library/Application Support/AgentDNA`
-- **Linux**: `~/.agent_dna`
+| 类型 | 路径 (Linux / macOS) | 路径 (Windows) |
+|------|-----------------------|----------------|
+| **Rules** | `~/.gemini/GEMINI.md` | `%USERPROFILE%\.gemini\GEMINI.md` |
+| **Workflows** | `~/.gemini/antigravity/global_workflows/` | `%USERPROFILE%\.gemini\antigravity\global_workflows\` |
+| **Skills** | `~/.gemini/antigravity/skills/` | `%USERPROFILE%\.gemini\antigravity\skills\` |
 
 ## License
 

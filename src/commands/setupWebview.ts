@@ -34,7 +34,13 @@ export class SetupWebview {
             async message => {
                 switch (message.command) {
                     case 'save':
-                        await this._saveConfiguration(message.repoUrl, message.token);
+                        await this._saveConfiguration(
+                            message.repoUrl,
+                            message.token,
+                            message.syncRules,
+                            message.syncWorkflows,
+                            message.syncSkills
+                        );
                         return;
                     case 'delete':
                         await this._deleteConfiguration();
@@ -96,6 +102,10 @@ export class SetupWebview {
         const config = vscode.workspace.getConfiguration('agentDna');
         const currentRepoUrl = config.get<string>('repoUrl') || '';
         const currentToken = await TokenManager.getInstance().getToken();
+
+        const syncRules = config.get<boolean>('syncRules', true);
+        const syncWorkflows = config.get<boolean>('syncWorkflows', true);
+        const syncSkills = config.get<boolean>('syncSkills', true);
 
         // Generate a nonce to whitelist which scripts can be run
         const nonce = getNonce();
@@ -257,6 +267,25 @@ export class SetupWebview {
                         </div>
                     </div>
 
+                    <!-- Sync Targets Section -->
+                    <h3 class="section-header">同步内容 / Sync Targets</h3>
+                    <p class="section-desc">选择要与全局目录同步的文档类型（强制覆盖时也会受到此开关的保护）。</p>
+                    
+                    <div class="card">
+                        <div class="form-group" style="margin-bottom: 12px; display: flex; align-items: center;">
+                            <input type="checkbox" id="syncRules" ${syncRules ? 'checked' : ''} style="margin-right: 12px; transform: scale(1.2);">
+                            <label for="syncRules" style="margin-bottom: 0;">Rules (~/.gemini/GEMINI.md)</label>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 12px; display: flex; align-items: center;">
+                            <input type="checkbox" id="syncWorkflows" ${syncWorkflows ? 'checked' : ''} style="margin-right: 12px; transform: scale(1.2);">
+                            <label for="syncWorkflows" style="margin-bottom: 0;">Workflows (~/.gemini/antigravity/global_workflows/)</label>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 12px; display: flex; align-items: center;">
+                            <input type="checkbox" id="syncSkills" ${syncSkills ? 'checked' : ''} style="margin-right: 12px; transform: scale(1.2);">
+                            <label for="syncSkills" style="margin-bottom: 0;">Skills (~/.gemini/antigravity/skills/)</label>
+                        </div>
+                    </div>
+
                     <!-- Danger Zone -->
                     <h3 class="section-header">危险区域 / Danger Zone</h3>
                     
@@ -276,10 +305,17 @@ export class SetupWebview {
                     document.getElementById('saveBtn').addEventListener('click', () => {
                         const repoUrl = document.getElementById('repoUrl').value;
                         const token = document.getElementById('token').value;
+                        const syncRules = document.getElementById('syncRules').checked;
+                        const syncWorkflows = document.getElementById('syncWorkflows').checked;
+                        const syncSkills = document.getElementById('syncSkills').checked;
+                        
                         vscode.postMessage({
                             command: 'save',
-                            repoUrl: repoUrl,
-                            token: token
+                            repoUrl,
+                            token,
+                            syncRules,
+                            syncWorkflows,
+                            syncSkills
                         });
                     });
 
@@ -294,10 +330,16 @@ export class SetupWebview {
     }
 
 
-    private async _saveConfiguration(repoUrl: string, token: string) {
-        if (repoUrl) {
-            await vscode.workspace.getConfiguration('agentDna').update('repoUrl', repoUrl, vscode.ConfigurationTarget.Global);
+    private async _saveConfiguration(repoUrl: string, token: string, syncRules: boolean, syncWorkflows: boolean, syncSkills: boolean) {
+        const config = vscode.workspace.getConfiguration('agentDna');
+
+        if (repoUrl !== undefined) {
+            await config.update('repoUrl', repoUrl, vscode.ConfigurationTarget.Global);
         }
+
+        await config.update('syncRules', syncRules, vscode.ConfigurationTarget.Global);
+        await config.update('syncWorkflows', syncWorkflows, vscode.ConfigurationTarget.Global);
+        await config.update('syncSkills', syncSkills, vscode.ConfigurationTarget.Global);
 
         if (token) {
             await TokenManager.getInstance().setToken(token);

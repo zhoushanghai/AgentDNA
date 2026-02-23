@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { PathResolver } from './PathResolver';
 
 const execAsync = promisify(exec);
 
@@ -11,28 +12,7 @@ export class GitService {
     private rulesDir: string;
 
     constructor() {
-        this.rulesDir = this.getPlatformSpecificRulesDir();
-    }
-
-    /**
-     * Get the platform-specific directory for storing rules
-     */
-    private getPlatformSpecificRulesDir(): string {
-        const platform = process.platform;
-        const homeDir = os.homedir();
-
-        switch (platform) {
-            case 'win32':
-                // Windows: %APPDATA%/AgentDNA
-                return path.join(process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), 'AgentDNA');
-            case 'darwin':
-                // macOS: ~/Library/Application Support/AgentDNA
-                return path.join(homeDir, 'Library', 'Application Support', 'AgentDNA');
-            case 'linux':
-            default:
-                // Linux/Other: ~/.agent_dna
-                return path.join(homeDir, '.agent_dna');
-        }
+        this.rulesDir = PathResolver.getCloneDir();
     }
 
     /**
@@ -146,17 +126,20 @@ export class GitService {
     }
 
     /**
-     * Check if AGENT.md exists in the rules directory
+     * Check if the repository has the v3 structure (contains rules/, workflows/, or skills/ directories)
      */
-    hasAgentMd(): boolean {
-        return fs.existsSync(path.join(this.rulesDir, 'AGENT.md'));
-    }
+    validateRepoStructure(): { isV3: boolean; isLegacy: boolean } {
+        const hasRulesDir = fs.existsSync(path.join(this.rulesDir, 'rules'));
+        const hasWorkflowsDir = fs.existsSync(path.join(this.rulesDir, 'workflows'));
+        const hasSkillsDir = fs.existsSync(path.join(this.rulesDir, 'skills'));
+        const hasLegacyAgentMd = fs.existsSync(path.join(this.rulesDir, 'AGENT.md'));
 
-    /**
-     * Get the path to AGENT.md in the rules directory
-     */
-    getAgentMdPath(): string {
-        return path.join(this.rulesDir, 'AGENT.md');
+        const isV3 = hasRulesDir || hasWorkflowsDir || hasSkillsDir;
+
+        return {
+            isV3,
+            isLegacy: hasLegacyAgentMd && !isV3
+        };
     }
 
     /**

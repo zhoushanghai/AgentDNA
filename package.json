@@ -22,19 +22,19 @@
     "commands": [
       {
         "command": "agentDna.sync",
-        "title": "AgentDNA: Sync (Pull)"
+        "title": "AgentDNA: Pull (Sync from Global)"
       },
       {
         "command": "agentDna.publish",
-        "title": "AgentDNA: Publish (Push)"
+        "title": "AgentDNA: Push (Sync to Global)"
       },
       {
-        "command": "agentDna.syncToLocalProjects",
-        "title": "AgentDNA: Sync Local Projects"
+        "command": "agentDna.forcePublish",
+        "title": "AgentDNA: Force Push (Overwrite Remote)"
       },
       {
-        "command": "agentDna.quickSetup",
-        "title": "AgentDNA: Quick Setup"
+        "command": "agentDna.setup",
+        "title": "AgentDNA: Settings"
       }
     ],
     "configuration": {
@@ -45,10 +45,20 @@
           "default": "",
           "description": "GitHub repository URL for agent rules (e.g., https://github.com/user/rules.git)"
         },
-        "agentDna.includeInGit": {
+        "agentDna.syncRules": {
           "type": "boolean",
-          "default": false,
-          "description": "Whether to include AGENT.md in Git version control. If false (default), it will be added to .gitignore."
+          "default": true,
+          "description": "Enable synchronizing the GEMINI.md Rules file."
+        },
+        "agentDna.syncWorkflows": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable synchronizing the global Workflows directory."
+        },
+        "agentDna.syncSkills": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable synchronizing the global Skills directory."
         }
       }
     }

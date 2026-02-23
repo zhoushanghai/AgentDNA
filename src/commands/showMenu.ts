@@ -1,50 +1,48 @@
 import * as vscode from 'vscode';
 import { TokenManager } from '../services/TokenManager';
-import { GitIgnoreService } from '../services/GitIgnoreService';
-
-import { ProjectRegistry } from '../services/ProjectRegistry';
 
 export async function showMenu(): Promise<void> {
     const config = vscode.workspace.getConfiguration('agentDna');
     const repoUrl = config.get<string>('repoUrl');
-
-    // Register current project if workspace is open
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders && workspaceFolders.length > 0) {
-        ProjectRegistry.getInstance().addProject(workspaceFolders[0].uri.fsPath);
-    }
 
     // Main Menu Items
     const items: vscode.QuickPickItem[] = [];
 
     if (repoUrl) {
         items.push({
-            label: '$(sync) 立即同步 (Pull)',
-            description: '从 GitHub 拉取最新 AGENT.md (覆盖本地)',
+            label: '$(sync) 同步全局文档 (Pull)',
+            description: '从 GitHub 拉取配置以覆盖本机',
             detail: `Repo: ${repoUrl}`,
             command: 'agentDna.sync'
         } as any);
 
         items.push({
-            label: '$(cloud-upload) 发布规则 (Publish)',
-            description: '将本地修改推送到 GitHub',
-            detail: '会自动提交并在其他项目中同步',
+            label: '$(cloud-upload) 发布全局文档 (Push)',
+            description: '将本机新增和修改推送到 GitHub',
+            detail: '保守合并: 不会删除远端独有的文件',
             command: 'agentDna.publish'
+        } as any);
+
+        items.push({
+            label: '$(error) 强制推送 (以本地为准)',
+            description: '危险：以本机状态镜像覆盖远端',
+            detail: '强制覆盖: 将删除远端独有的受管文件',
+            command: 'agentDna.forcePublish'
         } as any);
     } else {
         items.push({
-            label: '$(alert) 立即同步 (未配置)',
-            description: '点击进行初始配置',
-            detail: '设置仓库地址后才能开始同步',
-            command: 'agentDna.quickSetup'
+            label: '$(alert) 请先进行初始配置',
+            description: '点击配置仓库地址与 Token',
+            detail: '需要完成设置后方可进行同步操作',
+            command: 'agentDna.setup'
         } as any);
     }
 
     // Settings
     items.push({
-        label: '$(settings) 设置',
-        detail: '配置仓库地址和 Token', // Moved to detail for bottom placement
-        command: 'agentDna.showSettings'
+        label: '$(settings) 设置面板',
+        detail: '配置仓库、Token 与同步选项',
+        command: 'agentDna.setup'
     } as any);
 
     /* Git Tracking Option - Hidden by User Request
@@ -59,21 +57,10 @@ export async function showMenu(): Promise<void> {
 
     if (selection) {
         const item = selection as any;
-        if (item.command) {
-            if (item.command === 'agentDna.showSettings') {
-                await vscode.commands.executeCommand('agentDna.openSetupWebview');
-            } else if (item.command === 'agentDna.quickSetup') {
-                await vscode.commands.executeCommand('agentDna.openSetupWebview');
-            } else if (item.command === 'agentDna.toggleGitTracking') {
-                const current = config.get<boolean>('includeInGit', false);
-                await config.update('includeInGit', !current, vscode.ConfigurationTarget.Global);
-                // Re-open menu to show updated state
-                showMenu();
-            } else if (item.command === 'agentDna.showGitIgnoreInfo') {
-                vscode.window.showInformationMessage('需要在项目根目录创建 .gitignore 文件，才能配置是否将 AGENT.md 加入版本控制。');
-            } else {
-                vscode.commands.executeCommand(item.command);
-            }
+        if (item.command === 'agentDna.setup') {
+            await vscode.commands.executeCommand('agentDna.setup');
+        } else if (item.command) {
+            vscode.commands.executeCommand(item.command);
         }
     }
 }
