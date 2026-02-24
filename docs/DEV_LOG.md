@@ -2,6 +2,21 @@
 
 ## 1. 关键变更
 
+- **[2026-02-25]** 更新 `BUILD_GUIDE.md` 打包流程为已验证可复现版本：
+    - 将原先的 `vsce package` 通用描述替换为项目实测可用命令（`npx @vscode/vsce package --no-dependencies --no-yarn`）。
+    - 增补 `Extension entrypoint(s) missing: extension/dist/extension.js` 的排查说明，明确检查项：编译产物、打包参数、`.vscodeignore`。
+    - **Action**: Revised packaging documentation with a verified VSIX build workflow.
+    - **Details**: Updated Section 5 in `docs/BUILD_GUIDE.md` and added troubleshooting steps for missing entrypoint errors.
+    - **Execution Record**: `npm run compile && npm_config_cache=/tmp/.npm-cache npx @vscode/vsce package --no-dependencies --no-yarn -o agent-dna-0.3.0-build-verify.vsix`
+
+- **[2026-02-25]** 按 `BUILD_GUIDE.md` 完成插件打包（VSIX）：
+    - 按文档执行 `npm install`、`npm run compile`、`vsce package` 流程。
+    - 首次打包报错：`Extension entrypoint(s) missing: extension/dist/extension.js`。
+    - 通过清理打包路径策略完成打包：临时移开 `.vscodeignore`，使用 `vsce package --no-dependencies --no-yarn` 成功输出 VSIX，随后恢复 `.vscodeignore`。
+    - **Action**: Packaged extension artifact based on `docs/BUILD_GUIDE.md`.
+    - **Details**: Resolved VSCE entrypoint packaging issue and generated a valid VSIX without persisting temporary packaging config changes.
+    - **Execution Record**: `mv .vscodeignore .vscodeignore.bak && npm_config_cache=/tmp/.npm-cache npx @vscode/vsce package --no-dependencies --no-yarn -o agent-dna-0.3.0-build-20260225.vsix; rc=$?; mv .vscodeignore.bak .vscodeignore; exit $rc`
+
 - **[2026-02-23]** 重构 AgentDNA v3 架构：
     - 引入 `DocumentSyncService` 核心同步逻辑，支持多文档类型（Rules, Workflows, Skills）。
     - 引入 `PathResolver` 统一跨平台路径管理。
@@ -64,3 +79,4 @@
 - **[2026-02-24]** `git commit`: refactor(ui): 简化同步操作为两键模式并重塑工业风（界面待后续美化） / simplify sync to 2-button layout and restore industrial style (ui refining pending)
 - **[2026-02-24]** `git commit`: chore(release): 升级版本至 0.3.0 并更新 CHANGELOG / bump version to 0.3.0 and update CHANGELOG
 - **[2026-02-25]** `git commit`: feat(sync): 增加Codex支持 / add codex support
+- **[2026-02-25]** `git commit`: docs(build): 更新打包流程与排错说明 / refine VSIX packaging docs

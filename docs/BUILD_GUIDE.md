@@ -67,22 +67,40 @@ VS Code 提供了原生级别的扩展开发支持，这是我们在编写扩展
 
 当你完成了开发和测试，想把插件打包发给别人（或者拖进自己的主力 VS Code 里安装）时，你需要将其打包成 VS Code 扩展专用的 `.vsix` 文件。
 
-### 步骤
+### 步骤（已验证可用）
 
-1. 安装 VS Code 扩展打包工具（如果还没安装过）：
-   ```bash
-   npm install -g @vscode/vsce
-   ```
+1. 安装依赖并编译：
 
-2. 确保依赖都是干净的，代码已最新编译：
-   ```bash
-   npm install
-   npm run compile
-   ```
+```bash
+npm install
+npm run compile
+```
 
-3. 执行打包命令：
-   ```bash
-   vsce package
-   ```
+2. 使用 `npx` 打包（推荐，不依赖全局安装）：
 
-打包成功后，当前目录下会生成一个 `agent-dna-0.2.0.vsix`（版本号取决于 `package.json` 中的 version 配置）。你可以通过 VS Code 的扩展栏 ->右上角三个点 -> `Install from VSIX...` 来安装这个插件。
+```bash
+npm_config_cache=/tmp/.npm-cache \
+npx @vscode/vsce package \
+  --no-dependencies \
+  --no-yarn \
+  -o agent-dna-0.3.0-build.vsix
+```
+
+3. 打包成功后，会在项目根目录生成 `.vsix` 文件（文件名可自定义，例如上面的 `agent-dna-0.3.0-build.vsix`）。
+
+你可以通过 VS Code 的扩展栏 -> 右上角三个点 -> `Install from VSIX...` 安装该文件。
+
+### 常见问题排查
+
+如果你遇到类似报错：
+
+```text
+Extension entrypoint(s) missing:
+extension/dist/extension.js
+```
+
+优先检查：
+
+1. 是否已执行 `npm run compile` 且 `dist/extension.js` 确实存在。
+2. 是否使用了本文档推荐的打包参数：`--no-dependencies --no-yarn`。
+3. `.vscodeignore` 是否误排除了 `dist/**`。
