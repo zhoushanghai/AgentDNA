@@ -3,7 +3,6 @@ import * as path from 'path';
 
 export interface DocumentSetPaths {
     rules: string;
-    workflows: string;
     skills: string;
 }
 
@@ -30,33 +29,30 @@ export class PathResolver {
     }
 
     /**
-     * Get the target paths for the global documents based on the current platform
+     * Get the target paths for the global documents based on the current platform and tool
      */
-    static getGlobalPaths(): DocumentSetPaths {
-        const platform = process.platform;
+    static getToolPaths(tool: 'antigravity' | 'claude'): DocumentSetPaths {
         const homeDir = os.homedir();
 
-        let geminiRoot: string;
-
-        switch (platform) {
-            case 'win32':
-                // Windows: %USERPROFILE%/.gemini
-                // Note: user profile directory is effectively homedir in Node
-                geminiRoot = path.join(homeDir, '.gemini');
-                break;
-            case 'darwin':
-            case 'linux':
-            default:
-                // Unix-like: ~/.gemini
-                geminiRoot = path.join(homeDir, '.gemini');
-                break;
+        if (tool === 'claude') {
+            return {
+                rules: path.join(homeDir, '.claude', 'CLAUDE.md'),
+                skills: path.join(homeDir, '.claude', 'skills')
+            };
+        } else {
+            // Default: Antigravity
+            return {
+                rules: path.join(homeDir, '.gemini', 'GEMINI.md'),
+                skills: path.join(homeDir, '.gemini', 'antigravity', 'skills')
+            };
         }
+    }
 
-        return {
-            rules: path.join(geminiRoot, 'GEMINI.md'),
-            workflows: path.join(geminiRoot, 'antigravity', 'global_workflows'),
-            skills: path.join(geminiRoot, 'antigravity', 'skills')
-        };
+    /**
+     * Get the legacy global paths (for backward compatibility during migration)
+     */
+    static getGlobalPaths(): DocumentSetPaths {
+        return this.getToolPaths('antigravity');
     }
 
     /**

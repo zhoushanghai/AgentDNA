@@ -10,24 +10,17 @@ export async function showMenu(): Promise<void> {
 
     if (repoUrl) {
         items.push({
-            label: '$(sync) 同步全局文档 (Pull)',
-            description: '从 GitHub 拉取配置以覆盖本机',
-            detail: `Repo: ${repoUrl}`,
-            command: 'agentDna.sync'
+            label: '$(cloud-upload) 同步到云端 (Sync to Remote)',
+            description: '提取本地工具修改并推送到 GitHub',
+            detail: `Source: ${config.get('lastSource', 'antigravity')}`,
+            command: 'agentDna.syncLocalToRemote'
         } as any);
 
         items.push({
-            label: '$(cloud-upload) 发布全局文档 (Push)',
-            description: '将本机新增和修改推送到 GitHub',
-            detail: '保守合并: 不会删除远端独有的文件',
-            command: 'agentDna.publish'
-        } as any);
-
-        items.push({
-            label: '$(error) 强制推送 (以本地为准)',
-            description: '危险：以本机状态镜像覆盖远端',
-            detail: '强制覆盖: 将删除远端独有的受管文件',
-            command: 'agentDna.forcePublish'
+            label: '$(sync) 同步到本地 (Sync to Local)',
+            description: '从 GitHub 拉取并同步到本地所有工具',
+            detail: '将覆盖本地工具的受管文件',
+            command: 'agentDna.syncRemoteToLocal'
         } as any);
     } else {
         items.push({
@@ -41,13 +34,9 @@ export async function showMenu(): Promise<void> {
     // Settings
     items.push({
         label: '$(settings) 设置面板',
-        detail: '配置仓库、Token 与同步选项',
+        detail: '查看控制面板、配置仓库与同步选项',
         command: 'agentDna.setup'
     } as any);
-
-    /* Git Tracking Option - Hidden by User Request
-    if (workspaceFolders && workspaceFolders.length > 0) { ... }
-    */
 
     // Show menu
     const selection = await vscode.window.showQuickPick(items, {
@@ -57,9 +46,7 @@ export async function showMenu(): Promise<void> {
 
     if (selection) {
         const item = selection as any;
-        if (item.command === 'agentDna.setup') {
-            await vscode.commands.executeCommand('agentDna.setup');
-        } else if (item.command) {
+        if (item.command) {
             vscode.commands.executeCommand(item.command);
         }
     }

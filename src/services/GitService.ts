@@ -115,6 +115,42 @@ export class GitService {
     }
 
     /**
+     * Get the status of the repository
+     */
+    async getStatus(dir: string): Promise<{ isClean: () => boolean }> {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+        const status = await execAsync(`git -C "${dir}" status --porcelain`, { env });
+        return {
+            isClean: () => !status.stdout || status.stdout.trim() === ''
+        };
+    }
+
+    /**
+     * Commit changes in the repository
+     */
+    async commit(dir: string, message: string): Promise<void> {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+        await execAsync(`git -C "${dir}" add .`, { env });
+        await execAsync(`git -C "${dir}" commit -m "${message}"`, { env });
+    }
+
+    /**
+     * Push changes to remote
+     */
+    async push(dir: string): Promise<void> {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+        await execAsync(`git -C "${dir}" push`, { env });
+    }
+
+    /**
+     * Force push changes to remote
+     */
+    async forcePush(dir: string): Promise<void> {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+        await execAsync(`git -C "${dir}" push --force`, { env });
+    }
+
+    /**
      * Clone or update the repository
      */
     async syncRepo(repoUrl: string, token?: string): Promise<void> {
@@ -126,47 +162,27 @@ export class GitService {
     }
 
     /**
-     * Check if the repository has the v3 structure (contains rules/, workflows/, or skills/ directories)
+     * Check if the repository has the v3 structure (contains rules/ or skills/ directories)
      */
-    validateRepoStructure(): { isV3: boolean; isLegacy: boolean } {
-        const hasRulesDir = fs.existsSync(path.join(this.rulesDir, 'rules'));
-        const hasWorkflowsDir = fs.existsSync(path.join(this.rulesDir, 'workflows'));
-        const hasSkillsDir = fs.existsSync(path.join(this.rulesDir, 'skills'));
-        const hasLegacyAgentMd = fs.existsSync(path.join(this.rulesDir, 'AGENT.md'));
+    validateRepoStructure(dir: string = this.rulesDir): { isV3: boolean; isLegacy: boolean } {
+        const hasRulesDir = fs.existsSync(path.join(dir, 'rules'));
+        const hasSkillsDir = fs.existsSync(path.join(dir, 'skills'));
+        // Legacy AGENT.md check at root
+        const hasAgentMd = fs.existsSync(path.join(dir, 'AGENT.md'));
 
-        const isV3 = hasRulesDir || hasWorkflowsDir || hasSkillsDir;
+        const isV3 = hasRulesDir || hasSkillsDir;
 
         return {
             isV3,
-            isLegacy: hasLegacyAgentMd && !isV3
+            isLegacy: hasAgentMd && !isV3
         };
     }
 
     /**
-     * Commit and push changes to the repository
+     * Commit and push changes to the repository (legacy helper)
      */
     async commitAndPush(message: string, token?: string): Promise<void> {
-        // Use git command directly
-        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
-
-        try {
-            // Check if there are changes
-            const status = await execAsync(`git -C "${this.rulesDir}" status --porcelain`, { env });
-            if (!status.stdout || status.stdout.trim() === '') {
-                return; // No changes
-            }
-
-            // Git Add
-            await execAsync(`git -C "${this.rulesDir}" add .`, { env });
-
-            // Git Commit
-            await execAsync(`git -C "${this.rulesDir}" commit -m "${message}"`, { env });
-
-            // Git Push
-            await execAsync(`git -C "${this.rulesDir}" push`, { env });
-        } catch (error: any) {
-            const errMsg = error.message || error.stderr || '';
-            throw new Error(`Git Operation Failed: ${errMsg}`);
-        }
+        await this.commit(this.rulesDir, message);
+        await this.push(this.rulesDir);
     }
 }

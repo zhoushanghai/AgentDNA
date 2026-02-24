@@ -50,11 +50,6 @@
           "default": true,
           "description": "Enable synchronizing the GEMINI.md Rules file."
         },
-        "agentDna.syncWorkflows": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable synchronizing the global Workflows directory."
-        },
         "agentDna.syncSkills": {
           "type": "boolean",
           "default": true,

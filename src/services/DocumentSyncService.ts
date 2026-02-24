@@ -2,10 +2,11 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PathResolver, DocumentSetPaths } from './PathResolver';
+import { FormatAdapter } from './FormatAdapter';
+import { GitService } from './GitService';
 
 export interface DocumentSet {
     rules: { enabled: boolean; repoSubPath: string; globalPath: string; };
-    workflows: { enabled: boolean; repoSubPath: string; globalPath: string; };
     skills: { enabled: boolean; repoSubPath: string; globalPath: string; };
 }
 
@@ -15,163 +16,199 @@ export interface SyncResult {
 }
 
 export class DocumentSyncService {
+    private gitService: GitService;
+
+    constructor() {
+        this.gitService = new GitService();
+    }
 
     /**
-     * Get the current DocumentSet configuration based on user settings
+     * Get the current DocumentSet configuration (Legacy)
      */
     static getDocumentSet(): DocumentSet {
         const config = vscode.workspace.getConfiguration('agentDna');
-        const globalPaths = PathResolver.getGlobalPaths();
+        const toolPaths = PathResolver.getToolPaths('antigravity'); // Default to antigravity for legacy
 
         return {
             rules: {
-                enabled: config.get<boolean>('syncRules', true),
+                enabled: config.get<boolean>('agentDna.syncRules', true),
                 repoSubPath: 'rules/GEMINI.md',
-                globalPath: globalPaths.rules
-            },
-            workflows: {
-                enabled: config.get<boolean>('syncWorkflows', true),
-                repoSubPath: 'workflows',
-                globalPath: globalPaths.workflows
+                globalPath: toolPaths.rules
             },
             skills: {
-                enabled: config.get<boolean>('syncSkills', true),
+                enabled: config.get<boolean>('agentDna.syncSkills', true),
                 repoSubPath: 'skills',
-                globalPath: globalPaths.skills
+                globalPath: toolPaths.skills
             }
         };
     }
 
     /**
-     * Helper to recursively copy a directory. 
-     * Handles creating target directories and preserving existing unique files.
+     * Deploy to global (Legacy Wrapper)
      */
-    private async copyDirectory(source: string, target: string): Promise<void> {
-        if (!fs.existsSync(target)) {
-            fs.mkdirSync(target, { recursive: true });
+    async deployToGlobal(repoRoot: string, docSet: DocumentSet): Promise<SyncResult> {
+        return this.deployToTools(repoRoot, ['antigravity']);
+    }
+
+    /**
+     * Collect from global (Legacy Wrapper)
+     */
+    async collectFromGlobal(repoRoot: string, docSet: DocumentSet): Promise<void> {
+        await this.importFromTool(repoRoot, 'antigravity');
+    }
+
+    /**
+     * Force collect from global (Legacy Wrapper)
+     */
+    async forceCollectFromGlobal(repoRoot: string, docSet: DocumentSet): Promise<void> {
+        // For legacy, we just import normally as the new system handles merging/overwriting via FormatAdapter
+        await this.importFromTool(repoRoot, 'antigravity');
+    }
+
+    /**
+     * Push: Repo -> Tool(s)
+     */
+    async deployToTools(repoRoot: string, targets: ('antigravity' | 'claude')[]): Promise<SyncResult> {
+        try {
+            for (const target of targets) {
+                const adapter = new FormatAdapter(target);
+                const toolPaths = PathResolver.getToolPaths(target);
+                await adapter.push(repoRoot, toolPaths.rules, toolPaths.skills);
+            }
+            return { success: true, message: `已成功部署到: ${targets.join(', ')}` };
+        } catch (error) {
+            return { success: false, message: `部署失败: ${error}` };
+        }
+    }
+
+    /**
+     * Import: Tool -> Repo
+     */
+    async importFromTool(repoRoot: string, source: 'antigravity' | 'claude'): Promise<SyncResult> {
+        try {
+            const adapter = new FormatAdapter(source);
+            const toolPaths = PathResolver.getToolPaths(source);
+            await adapter.pull(repoRoot, toolPaths.rules, toolPaths.skills);
+            return { success: true, message: `已从 ${source} 成功保存改动到仓库` };
+        } catch (error) {
+            return { success: false, message: `提取失败: ${error}` };
+        }
+    }
+
+    /**
+     * Remote Push: Workspace -> Cache -> GitHub
+     */
+    async pushToRemote(repoRoot: string, cloneDir: string, force: boolean): Promise<SyncResult> {
+        try {
+            // 1. Sync current workspace files to cache dir
+            await this.syncProjectToCache(repoRoot, cloneDir);
+
+            // 2. Git operations in cache dir
+            const status = await this.gitService.getStatus(cloneDir);
+            if (!status.isClean()) {
+                await this.gitService.commit(cloneDir, `sync: update rules/skills via AgentDNA ${new Date().toLocaleString()}`);
+            }
+
+            if (force) {
+                await this.gitService.forcePush(cloneDir);
+            } else {
+                await this.gitService.push(cloneDir);
+            }
+            return { success: true, message: '已成功归档到云端' };
+        } catch (error) {
+            return { success: false, message: `推送失败: ${error}` };
+        }
+    }
+
+    /**
+     * Remote Pull: GitHub -> Cache -> Workspace
+     */
+    async pullFromRemote(repoRoot: string, cloneDir: string): Promise<SyncResult> {
+        try {
+            // 1. Git pull to cache dir
+            await this.gitService.pull(cloneDir);
+
+            // 2. Sync cache files back to workspace
+            await this.syncCacheToProject(cloneDir, repoRoot);
+
+            return { success: true, message: '已从云端同步最新数据' };
+        } catch (error) {
+            return { success: false, message: `拉取失败: ${error}` };
+        }
+    }
+
+    /**
+     * Orchestrator: Local Tool -> Repo -> Remote
+     */
+    async syncLocalToRemote(repoRoot: string, cloneDir: string, source: 'antigravity' | 'claude', force: boolean): Promise<SyncResult> {
+        // 1. Import from tool to repo
+        const importResult = await this.importFromTool(repoRoot, source);
+        if (!importResult.success) return importResult;
+
+        // 2. Push from repo to remote
+        return await this.pushToRemote(repoRoot, cloneDir, force);
+    }
+
+    /**
+     * Orchestrator: Remote -> Repo -> Local Tools
+     */
+    async syncRemoteToLocal(repoRoot: string, cloneDir: string, targets: ('antigravity' | 'claude')[]): Promise<SyncResult> {
+        // 1. Pull from remote to repo
+        const pullResult = await this.pullFromRemote(repoRoot, cloneDir);
+        if (!pullResult.success) return pullResult;
+
+        // 2. Deploy from repo to tools
+        return await this.deployToTools(repoRoot, targets);
+    }
+
+    /**
+     * Internal Sync: Project Workspace -> Git Cache
+     */
+    private async syncProjectToCache(repoRoot: string, cloneDir: string): Promise<void> {
+        // We only care about AGENT.md and skills/
+        const agentFile = path.join(repoRoot, 'AGENT.md');
+        const skillsDir = path.join(repoRoot, 'skills');
+
+        if (fs.existsSync(agentFile)) {
+            fs.copyFileSync(agentFile, path.join(cloneDir, 'AGENT.md'));
         }
 
-        const entries = fs.readdirSync(source, { withFileTypes: true });
+        if (fs.existsSync(skillsDir)) {
+            await this.copyDirectory(skillsDir, path.join(cloneDir, 'skills'));
+        }
+    }
+
+    /**
+     * Internal Sync: Git Cache -> Project Workspace
+     */
+    private async syncCacheToProject(cloneDir: string, repoRoot: string): Promise<void> {
+        const agentFile = path.join(cloneDir, 'AGENT.md');
+        const skillsDir = path.join(cloneDir, 'skills');
+
+        if (fs.existsSync(agentFile)) {
+            fs.copyFileSync(agentFile, path.join(repoRoot, 'AGENT.md'));
+        }
+
+        if (fs.existsSync(skillsDir)) {
+            await this.copyDirectory(skillsDir, path.join(repoRoot, 'skills'));
+        }
+    }
+
+    private async copyDirectory(src: string, dst: string): Promise<void> {
+        if (!fs.existsSync(dst)) {
+            fs.mkdirSync(dst, { recursive: true });
+        }
+        const entries = fs.readdirSync(src, { withFileTypes: true });
 
         for (const entry of entries) {
-            // Skip git directories
-            if (entry.name === '.git') continue;
-
-            const srcPath = path.join(source, entry.name);
-            const destPath = path.join(target, entry.name);
+            const srcPath = path.join(src, entry.name);
+            const dstPath = path.join(dst, entry.name);
 
             if (entry.isDirectory()) {
-                await this.copyDirectory(srcPath, destPath);
+                await this.copyDirectory(srcPath, dstPath);
             } else {
-                fs.copyFileSync(srcPath, destPath);
+                fs.copyFileSync(srcPath, dstPath);
             }
         }
-    }
-
-    /**
-     * Helper to copy a single file, ensuring the target directory exists
-     */
-    private copySingleFile(source: string, target: string): void {
-        const targetDir = path.dirname(target);
-        if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
-        }
-        fs.copyFileSync(source, target);
-    }
-
-    /**
-     * Deploy documents from the cloned repository to the user's global directories (Pull)
-     */
-    async deployToGlobal(cloneDir: string, docSet: DocumentSet): Promise<SyncResult> {
-        try {
-            // 1. Rules (Single File)
-            if (docSet.rules.enabled) {
-                const srcRulePath = path.join(cloneDir, 'rules', 'GEMINI.md');
-                // Support legacy AGENT.md for seamless migration during Pull
-                const legacySrcPath = path.join(cloneDir, 'AGENT.md');
-
-                if (fs.existsSync(srcRulePath)) {
-                    this.copySingleFile(srcRulePath, docSet.rules.globalPath);
-                } else if (fs.existsSync(legacySrcPath)) {
-                    this.copySingleFile(legacySrcPath, docSet.rules.globalPath);
-                }
-            }
-
-            // 2. Workflows (Directory)
-            if (docSet.workflows.enabled) {
-                const srcWorkflowsPath = path.join(cloneDir, 'workflows');
-                if (fs.existsSync(srcWorkflowsPath)) {
-                    await this.copyDirectory(srcWorkflowsPath, docSet.workflows.globalPath);
-                }
-            }
-
-            // 3. Skills (Directory)
-            if (docSet.skills.enabled) {
-                const srcSkillsPath = path.join(cloneDir, 'skills');
-                if (fs.existsSync(srcSkillsPath)) {
-                    await this.copyDirectory(srcSkillsPath, docSet.skills.globalPath);
-                }
-            }
-
-            return { success: true, message: '全局文档已部署' };
-        } catch (error) {
-            const msg = error instanceof Error ? error.message : String(error);
-            return { success: false, message: `部署失败: ${msg}` };
-        }
-    }
-
-    /**
-     * Collect local documents into the clone directory for pushing (Normal Merge Push)
-     */
-    async collectFromGlobal(cloneDir: string, docSet: DocumentSet): Promise<void> {
-        // Collect Rules
-        if (docSet.rules.enabled && fs.existsSync(docSet.rules.globalPath)) {
-            this.copySingleFile(docSet.rules.globalPath, path.join(cloneDir, 'rules', 'GEMINI.md'));
-        }
-
-        // Collect Workflows
-        if (docSet.workflows.enabled && fs.existsSync(docSet.workflows.globalPath)) {
-            await this.copyDirectory(docSet.workflows.globalPath, path.join(cloneDir, 'workflows'));
-        }
-
-        // Collect Skills
-        if (docSet.skills.enabled && fs.existsSync(docSet.skills.globalPath)) {
-            await this.copyDirectory(docSet.skills.globalPath, path.join(cloneDir, 'skills'));
-        }
-    }
-
-    /**
-     * Clear specifically managed directories before a force push
-     */
-    private clearManagedDirectories(cloneDir: string, docSet: DocumentSet): void {
-        if (docSet.rules.enabled) {
-            const rulesDir = path.join(cloneDir, 'rules');
-            if (fs.existsSync(rulesDir)) fs.rmSync(rulesDir, { recursive: true, force: true });
-
-            // Allow cleaning up legacy file if we are force pushing rules
-            const legacyPath = path.join(cloneDir, 'AGENT.md');
-            if (fs.existsSync(legacyPath)) fs.rmSync(legacyPath, { force: true });
-        }
-
-        if (docSet.workflows.enabled) {
-            const wfDir = path.join(cloneDir, 'workflows');
-            if (fs.existsSync(wfDir)) fs.rmSync(wfDir, { recursive: true, force: true });
-        }
-
-        if (docSet.skills.enabled) {
-            const skillsDir = path.join(cloneDir, 'skills');
-            if (fs.existsSync(skillsDir)) fs.rmSync(skillsDir, { recursive: true, force: true });
-        }
-    }
-
-    /**
-     * Force collect: clears remote content first, then copies local, enabling a true overwrite (Force Push)
-     */
-    async forceCollectFromGlobal(cloneDir: string, docSet: DocumentSet): Promise<void> {
-        // 1. Clear directories FIRST, respecting the 'enabled' state
-        this.clearManagedDirectories(cloneDir, docSet);
-
-        // 2. Perform normal collection to populate the newly cleared directories
-        await this.collectFromGlobal(cloneDir, docSet);
     }
 }
