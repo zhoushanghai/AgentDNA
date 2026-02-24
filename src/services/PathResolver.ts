@@ -31,13 +31,18 @@ export class PathResolver {
     /**
      * Get the target paths for the global documents based on the current platform and tool
      */
-    static getToolPaths(tool: 'antigravity' | 'claude'): DocumentSetPaths {
+    static getToolPaths(tool: 'antigravity' | 'claude' | 'codex'): DocumentSetPaths {
         const homeDir = os.homedir();
 
         if (tool === 'claude') {
             return {
                 rules: path.join(homeDir, '.claude', 'CLAUDE.md'),
                 skills: path.join(homeDir, '.claude', 'skills')
+            };
+        } else if (tool === 'codex') {
+            return {
+                rules: path.join(homeDir, '.codex', 'AGENTS.md'),
+                skills: path.join(homeDir, '.codex', 'skills')
             };
         } else {
             // Default: Antigravity

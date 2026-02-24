@@ -9,7 +9,7 @@ import { TokenManager } from '../services/TokenManager';
 
 export async function syncLocalToRemote() {
     const config = vscode.workspace.getConfiguration('agentDna');
-    const source = config.get<'antigravity' | 'claude'>('lastSource', 'antigravity');
+    const source = config.get<'antigravity' | 'claude' | 'codex'>('lastSource', 'antigravity');
     const cloneDir = PathResolver.getCloneDir();
     const repoRoot = cloneDir;
     const token = await TokenManager.getInstance().getToken();
@@ -34,7 +34,7 @@ export async function syncRemoteToLocal() {
     const repoRoot = cloneDir;
     const token = await TokenManager.getInstance().getToken();
 
-    const targets: ('antigravity' | 'claude')[] = ['antigravity', 'claude']; // Default to both or read from config
+    const targets: ('antigravity' | 'claude' | 'codex')[] = ['antigravity', 'claude', 'codex']; // Default to all or read from config
 
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,

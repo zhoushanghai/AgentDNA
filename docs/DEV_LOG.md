@@ -63,3 +63,4 @@
 - **[2026-02-23]** `git commit`: refactor(core): 重构 AgentDNA v3 架构，实现多文档同步与路径解析 / refactor AgentDNA v3 architecture for multi-document sync and path resolution
 - **[2026-02-24]** `git commit`: refactor(ui): 简化同步操作为两键模式并重塑工业风（界面待后续美化） / simplify sync to 2-button layout and restore industrial style (ui refining pending)
 - **[2026-02-24]** `git commit`: chore(release): 升级版本至 0.3.0 并更新 CHANGELOG / bump version to 0.3.0 and update CHANGELOG
+- **[2026-02-25]** `git commit`: feat(sync): 增加Codex支持 / add codex support

@@ -78,7 +78,7 @@ export class DocumentSyncService {
     /**
      * Push: Repo -> Tool(s)
      */
-    async deployToTools(repoRoot: string, targets: ('antigravity' | 'claude')[]): Promise<SyncResult> {
+    async deployToTools(repoRoot: string, targets: ('antigravity' | 'claude' | 'codex')[]): Promise<SyncResult> {
         try {
             for (const target of targets) {
                 const adapter = new FormatAdapter(target);
@@ -94,7 +94,7 @@ export class DocumentSyncService {
     /**
      * Import: Tool -> Repo
      */
-    async importFromTool(repoRoot: string, source: 'antigravity' | 'claude'): Promise<SyncResult> {
+    async importFromTool(repoRoot: string, source: 'antigravity' | 'claude' | 'codex'): Promise<SyncResult> {
         try {
             const adapter = new FormatAdapter(source);
             const toolPaths = PathResolver.getToolPaths(source);
@@ -181,7 +181,7 @@ export class DocumentSyncService {
     /**
      * Orchestrator: Local Tool -> Repo -> Remote
      */
-    async syncLocalToRemote(repoRoot: string, cloneDir: string, source: 'antigravity' | 'claude', force: boolean, token?: string): Promise<SyncResult> {
+    async syncLocalToRemote(repoRoot: string, cloneDir: string, source: 'antigravity' | 'claude' | 'codex', force: boolean, token?: string): Promise<SyncResult> {
         // 1. Import from tool to repo
         const importResult = await this.importFromTool(repoRoot, source);
         if (!importResult.success) return importResult;
@@ -193,7 +193,7 @@ export class DocumentSyncService {
     /**
      * Orchestrator: Remote -> Repo -> Local Tools
      */
-    async syncRemoteToLocal(repoRoot: string, cloneDir: string, targets: ('antigravity' | 'claude')[], token?: string): Promise<SyncResult> {
+    async syncRemoteToLocal(repoRoot: string, cloneDir: string, targets: ('antigravity' | 'claude' | 'codex')[], token?: string): Promise<SyncResult> {
         // 1. Pull from remote to repo
         const pullResult = await this.pullFromRemote(repoRoot, cloneDir, token);
         if (!pullResult.success) return pullResult;

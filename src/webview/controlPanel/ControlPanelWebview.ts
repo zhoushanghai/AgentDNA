@@ -71,7 +71,7 @@ export class ControlPanelWebview {
         ControlPanelWebview.currentPanel = new ControlPanelWebview(panel, context.extensionUri, context);
     }
 
-    private async handleSyncLocalToRemote(source: 'antigravity' | 'claude', force: boolean) {
+    private async handleSyncLocalToRemote(source: 'antigravity' | 'claude' | 'codex', force: boolean) {
         try {
             const docSyncService = new DocumentSyncService();
             const cloneDir = PathResolver.getCloneDir();
@@ -100,7 +100,7 @@ export class ControlPanelWebview {
         }
     }
 
-    private async handleSyncRemoteToLocal(targets: ('antigravity' | 'claude')[]) {
+    private async handleSyncRemoteToLocal(targets: ('antigravity' | 'claude' | 'codex')[]) {
         const docSyncService = new DocumentSyncService();
         const cloneDir = PathResolver.getCloneDir();
         const repoRoot = cloneDir;
@@ -158,16 +158,25 @@ export class ControlPanelWebview {
         const repoUrl = config.get<string>('repoUrl') || '';
         const token = await TokenManager.getInstance().getToken();
         const lastSync = this.context.globalState.get<string>('agentDna.lastSync') || '从未同步';
-        const lastSource = this.context.globalState.get<'antigravity' | 'claude'>('agentDna.lastSource')
-            || config.get<'antigravity' | 'claude'>('lastSource', 'antigravity');
+        const lastSource = this.context.globalState.get<'antigravity' | 'claude' | 'codex'>('agentDna.lastSource')
+            || config.get<'antigravity' | 'claude' | 'codex'>('lastSource', 'antigravity');
 
         const toolPathsAg = PathResolver.getToolPaths('antigravity');
         const toolPathsClaude = PathResolver.getToolPaths('claude');
+        const toolPathsCodex = PathResolver.getToolPaths('codex');
 
-        this._panel.webview.html = this._getHtmlForWebview(repoUrl, token, lastSync, toolPathsAg.skills, toolPathsClaude.skills, lastSource);
+        this._panel.webview.html = this._getHtmlForWebview(repoUrl, token, lastSync, toolPathsAg.skills, toolPathsClaude.skills, toolPathsCodex.skills, lastSource);
     }
 
-    private _getHtmlForWebview(repoUrl: string, token: string | undefined, lastSync: string, agPath: string, claudePath: string, lastSource: 'antigravity' | 'claude' = 'antigravity') {
+    private _getHtmlForWebview(
+        repoUrl: string,
+        token: string | undefined,
+        lastSync: string,
+        agPath: string,
+        claudePath: string,
+        codexPath: string,
+        lastSource: 'antigravity' | 'claude' | 'codex' = 'antigravity'
+    ) {
         return `<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -351,6 +360,7 @@ export class ControlPanelWebview {
                         <select id="sourceSelect" class="form-control" style="flex: 1;">
                             <option value="antigravity" ${lastSource === 'antigravity' ? 'selected' : ''}>Antigravity (Gemini)</option>
                             <option value="claude" ${lastSource === 'claude' ? 'selected' : ''}>Claude Code (Anthropic)</option>
+                            <option value="codex" ${lastSource === 'codex' ? 'selected' : ''}>Codex (OpenAI)</option>
                         </select>
                         <button class="btn btn-primary" id="btnSyncLocal" title="提取工具修改 -> 提交 -> 推送云端">同步到云端</button>
                     </div>
@@ -368,6 +378,9 @@ export class ControlPanelWebview {
                             </label>
                             <label class="checkbox-container">
                                 <input type="checkbox" id="targetClaude" checked> Claude Code
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="targetCodex" checked> Codex
                             </label>
                         </div>
                         <button class="btn" id="btnSyncRemote" title="拉取 -> 更新仓库 -> 分发下发">同步到本地</button>
@@ -438,6 +451,7 @@ export class ControlPanelWebview {
              const targets = [];
              if (document.getElementById('targetAntigravity').checked) targets.push('antigravity');
              if (document.getElementById('targetClaude').checked) targets.push('claude');
+             if (document.getElementById('targetCodex').checked) targets.push('codex');
              if (targets.length === 0) return;
              vscode.postMessage({ command: 'syncRemoteToLocal', targets });
         });

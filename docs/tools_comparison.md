@@ -1,90 +1,119 @@
 """
-This document compares the directory structures and specifications of different AI Agent programming tools.
+This document compares the directory structures and specifications of different AI agent tooling ecosystems.
 It covers:
-- Open Source Standard (Official)
-- Antigravity (Gemini Ecosystem)
-- Claude Code (Anthropic Ecosystem)
+- Open Source Standard (official agent skills specification)
+- Antigravity (Gemini ecosystem)
+- Claude Code (Anthropic ecosystem)
+- Codex (OpenAI ecosystem)
 """
 
-# Programming Tools Comparison: Agent Skill Standards
-
-This document outlines the differences in directory structures and technical specifications between various AI tool ecosystems for developing Agent Skills.
+# Programming Tools Comparison: Agent Standards
 
 ## 1. Specification Overview
 
-| Feature | Open Source Standard (Official) | Antigravity (Gemini) |   (Anthropic) |
-| :--- | :--- | :--- | :--- |
-| **Project Path** | Flexible (Usually in project) | `.agent/skills/` | `.claude/skills/` |
-| **Global Path** | N/A | `~/.gemini/antigravity/skills/` | `~/.claude/skills/` |
-| **Agent File** | `AGENT.md` (Project) | `~/.gemini/GEMINI.md` (Global) | `~/.claude/CLAUDE.md` (Global) |
-| **Entry Point** | `SKILL.md` | `SKILL.md` | `SKILL.md` |
-| **Reference Dir** | `references/` | `examples/` | `examples/` |
-| **Resource Dir** | `assets/` | `resources/` | `template.md` (Root) |
-
+| Feature | Open Source Standard (Official) | Antigravity (Gemini) | Claude Code (Anthropic) | Codex (OpenAI) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Core instruction file** | `AGENT.md` | `~/.gemini/GEMINI.md` | `~/.claude/CLAUDE.md` | `AGENTS.md` / `AGENTS.override.md` |
+| **Instruction scope** | Usually project-level | Global | Global | Global + project chain merge |
+| **Skill entry file** | `SKILL.md` | `SKILL.md` | `SKILL.md` | `SKILL.md` |
+| **References dir** | `references/` | `examples/` | `examples/` | `references/` |
+| **Assets/resources dir** | `assets/` | `resources/` | often `template.md` + resources | `assets/` |
 
 ---
 
-## 2. Detailed Structure Comparison
+## 2. Skill Structure Comparison
 
-### 2.1 Open Source Standard (Official Agent Skills)
-The most general industry specification (Open Source Standard), emphasizing formal documentation and property-based naming.
+### 2.1 Open Source Standard
 
 ```text
 my-skill/
-├── SKILL.md          # Core: Metadata + Instructions
-├── scripts/          # Scripts: Executable code
-├── references/       # References: Manuals, detailed docs
-└── assets/           # Assets: Templates, images, static resources
+├── SKILL.md
+├── scripts/
+├── references/
+└── assets/
 ```
 
-### 2.2 Antigravity Version (Gemini Ecosystem)
-Google's implementation, tailored for developer habits by reinterpreting "references" as "examples".
+### 2.2 Antigravity (Gemini)
 
 ```text
 .agent/skills/my-skill/
-├── SKILL.md       # Main instructions (required)
-├── scripts/       # Helper scripts (optional)
-├── examples/      # Reference implementations (optional)
-└── resources/     # Templates and other assets (optional)
+├── SKILL.md
+├── scripts/
+├── examples/
+└── resources/
 ```
 
-### 2.3 Claude Code Version (Anthropic Ecosystem)
-The most feature-rich format, optimizing for efficiency by exposing key templates at the root level.
+### 2.3 Claude Code
+
+```text
+~/.claude/skills/my-skill/
+├── SKILL.md
+├── template.md
+├── examples/
+└── scripts/
+```
+
+### 2.4 Codex
 
 ```text
 my-skill/
-├── SKILL.md           # Main instructions (required)
-├── template.md        # Template for Claude to fill in
-├── examples/
-│   └── sample.md      # Example output showing expected format
-└── scripts/
-    └── validate.sh    # Script Claude can execute
+├── SKILL.md                # required, with name + description frontmatter
+├── scripts/                # optional
+├── references/             # optional
+├── assets/                 # optional
+└── agents/openai.yaml      # optional metadata
 ```
 
 ---
 
-## 3. Summary of Key Differences
+## 3. Codex Instruction Discovery (AGENTS.md)
 
-- **Naming Philosophy**: Official Standard is formal, Antigravity is developer-centric, and Claude Code is performance-oriented.
-- **Complexity**: Claude Code provides the highest flexibility with dynamic execution and deep metadata support.
-- **Organization**: Antigravity and Claude Code group reference materials under `examples/`, while the Official Standard uses `references/`.
+Codex builds an instruction chain in this order:
+
+1. Global: `~/.codex/AGENTS.override.md` or `~/.codex/AGENTS.md` (first non-empty).
+2. Project path walk: from repo root to current directory, one file per directory with priority:
+   `AGENTS.override.md` -> `AGENTS.md` -> fallback filenames from config.
+3. Merge order: root to leaf; closer files override earlier guidance by appearing later.
+
+Key config:
+
+- `project_doc_fallback_filenames`
+- `project_doc_max_bytes` (default 32 KiB)
+- `CODEX_HOME` (changes Codex home from default `~/.codex`)
 
 ---
 
-## 3. Agent Definition Files
+## 4. Codex Skills Scope and Installation
 
-Agent definition files (or "Instruction files") provide the high-level identity and behavioral rules for the AI.
+Codex supports skills from multiple scopes:
+
+- REPO: `.agents/skills` from current directory up to repo root
+- USER: `~/.agents/skills`
+- ADMIN: `/etc/codex/skills`
+- SYSTEM: built-in skills
+
+Skill installation helper behavior (skill-installer):
+
+- Default install target: `$CODEX_HOME/skills` (usually `~/.codex/skills`)
+- Supports curated skills, experimental skills, and GitHub path install
+- Supports private repos via existing git credentials or `GITHUB_TOKEN` / `GH_TOKEN`
+
+---
+
+## 5. Agent Definition Files
 
 | Tool | File Path | Scope |
 | :--- | :--- | :--- |
-| **Open Source** | `AGENT.md` | Project-level instructions |
-| **Antigravity** | `~/.gemini/GEMINI.md` | Global user-defined rules & identity |
-| **Claude Code** | `~/.claude/CLAUDE.md` | Global personal rules & configuration |
+| Open Source Standard | `AGENT.md` | Project-level |
+| Antigravity | `~/.gemini/GEMINI.md` | Global |
+| Claude Code | `~/.claude/CLAUDE.md` | Global |
+| Codex | `~/.codex/AGENTS.md` (global) + project `AGENTS*.md` chain | Global + project merged |
 
 ---
 
-## 4. Data Sources
+## 6. Summary
 
-- **Claude Code**: [Extend Claude with skills - Claude Code Docs](https://code.claude.com/docs/en/skills)
-- **Open Source Standard**: [What are skills? - Agent Skills](https://agentskills.io/what-are-skills)
-- **Antigravity**: [Google Antigravity Documentation](https://antigravity.google/docs/skills)
+- Open Source Standard is the neutral storage format (`AGENT.md` + `skills/` style).
+- Antigravity and Claude Code mainly differ in naming/path conventions.
+- Codex adds a hierarchical instruction system (`AGENTS.md`) and multi-scope skill loading.
+- For cross-tool sync products, use Open Source Standard as hub, and adapt per tool on import/export.

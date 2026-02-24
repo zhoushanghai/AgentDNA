@@ -14,7 +14,7 @@ export interface FormatMapping {
 }
 
 export class FormatAdapter {
-    constructor(private tool: 'antigravity' | 'claude') { }
+    constructor(private tool: 'antigravity' | 'claude' | 'codex') { }
 
     /**
      * Map skill subdirectories based on the target tool
@@ -22,26 +22,15 @@ export class FormatAdapter {
     private getSkillMappings(skillName: string, repoRoot: string, toolSkillsRoot: string): FormatMapping[] {
         const repoSkillPath = path.join(repoRoot, 'skills', skillName);
         const toolSkillPath = path.join(toolSkillsRoot, skillName);
+        const referenceDirName = this.tool === 'codex' ? 'references' : 'examples';
+        const assetDirName = this.tool === 'codex' ? 'assets' : 'resources';
 
         const mappings: FormatMapping[] = [
             { repoPath: path.join(repoSkillPath, 'SKILL.md'), toolPath: path.join(toolSkillPath, 'SKILL.md') },
             { repoPath: path.join(repoSkillPath, 'scripts'), toolPath: path.join(toolSkillPath, 'scripts') },
-            { repoPath: path.join(repoSkillPath, 'references'), toolPath: path.join(toolSkillPath, 'examples') },
+            { repoPath: path.join(repoSkillPath, 'references'), toolPath: path.join(toolSkillPath, referenceDirName) },
+            { repoPath: path.join(repoSkillPath, 'assets'), toolPath: path.join(toolSkillPath, assetDirName) },
         ];
-
-        // Asset mapping differs by tool
-        if (this.tool === 'antigravity') {
-            mappings.push({
-                repoPath: path.join(repoSkillPath, 'assets'),
-                toolPath: path.join(toolSkillPath, 'resources')
-            });
-        } else if (this.tool === 'claude') {
-            // Note: template.md in Claude is handled specially in push/pull logic
-            mappings.push({
-                repoPath: path.join(repoSkillPath, 'assets'),
-                toolPath: path.join(toolSkillPath, 'resources')
-            });
-        }
 
         return mappings;
     }
@@ -50,7 +39,7 @@ export class FormatAdapter {
      * Push: Repository (OS Standard) -> Tool Local Path
      */
     async push(repoRoot: string, toolRulesPath: string, toolSkillsRoot: string): Promise<void> {
-        // 1. Agent file (AGENT.md -> GEMINI.md/CLAUDE.md)
+        // 1. Agent file (AGENT.md -> GEMINI.md/CLAUDE.md/AGENTS.md)
         const agentSrc = path.join(repoRoot, 'AGENT.md');
         if (fs.existsSync(agentSrc)) {
             this.copyFile(agentSrc, toolRulesPath);
@@ -92,7 +81,7 @@ export class FormatAdapter {
      * Pull: Tool Local Path -> Repository (OS Standard)
      */
     async pull(repoRoot: string, toolRulesPath: string, toolSkillsRoot: string): Promise<void> {
-        // 1. Agent file (GEMINI.md/CLAUDE.md -> AGENT.md)
+        // 1. Agent file (GEMINI.md/CLAUDE.md/AGENTS.md -> AGENT.md)
         if (fs.existsSync(toolRulesPath)) {
             this.copyFile(toolRulesPath, path.join(repoRoot, 'AGENT.md'));
         }
