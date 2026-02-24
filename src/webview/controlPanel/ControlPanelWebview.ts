@@ -23,20 +23,24 @@ export class ControlPanelWebview {
 
         this._panel.webview.onDidReceiveMessage(
             async message => {
-                switch (message.command) {
-                    case 'syncLocalToRemote':
-                        await this.handleSyncLocalToRemote(message.source, message.force);
-                        break;
-                    case 'syncRemoteToLocal':
-                        await this.handleSyncRemoteToLocal(message.targets);
-                        break;
-                    case 'saveSettings':
-                        await this.handleSaveSettings(message.repoUrl, message.token);
-                        break;
-                    case 'updateLastSync':
-                        await this.context.globalState.update('agentDna.lastSync', message.time);
-                        this._update();
-                        break;
+                try {
+                    switch (message.command) {
+                        case 'syncLocalToRemote':
+                            await this.handleSyncLocalToRemote(message.source, message.force);
+                            break;
+                        case 'syncRemoteToLocal':
+                            await this.handleSyncRemoteToLocal(message.targets);
+                            break;
+                        case 'saveSettings':
+                            await this.handleSaveSettings(message.repoUrl, message.token, message.lastSource);
+                            break;
+                        case 'updateLastSync':
+                            await this.context.globalState.update('agentDna.lastSync', message.time);
+                            this._update();
+                            break;
+                    }
+                } catch (error) {
+                    vscode.window.showErrorMessage(`操作失败: ${error}`);
                 }
             },
             null,
@@ -68,54 +72,68 @@ export class ControlPanelWebview {
     }
 
     private async handleSyncLocalToRemote(source: 'antigravity' | 'claude', force: boolean) {
-        const docSyncService = new DocumentSyncService();
-        const repoRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-        const cloneDir = PathResolver.getCloneDir();
-        if (!repoRoot) return;
+        try {
+            const docSyncService = new DocumentSyncService();
+            const cloneDir = PathResolver.getCloneDir();
+            const repoRoot = cloneDir;
+            const token = await TokenManager.getInstance().getToken();
 
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: `正在将本地 ${source} 更改同步到云端...`,
-            cancellable: false
-        }, async (progress) => {
-            const result = await docSyncService.syncLocalToRemote(repoRoot, cloneDir, source, force);
-            if (result.success) {
-                const now = new Date().toLocaleString();
-                await this.context.globalState.update('agentDna.lastSync', now);
-                vscode.window.showInformationMessage(result.message);
-                this._update();
-            } else {
-                vscode.window.showErrorMessage(result.message);
-            }
-        });
+            await this.context.globalState.update('agentDna.lastSource', source);
+
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: `正在将本地 ${source} 更改同步到云端...`,
+                cancellable: false
+            }, async () => {
+                const result = await docSyncService.syncLocalToRemote(repoRoot, cloneDir, source, force, token);
+                if (result.success) {
+                    const now = new Date().toLocaleString();
+                    await this.context.globalState.update('agentDna.lastSync', now);
+                    vscode.window.showInformationMessage(result.message);
+                    this._update();
+                } else {
+                    vscode.window.showErrorMessage(result.message);
+                }
+            });
+        } catch (error) {
+            vscode.window.showErrorMessage(`同步失败: ${error}`);
+        }
     }
 
     private async handleSyncRemoteToLocal(targets: ('antigravity' | 'claude')[]) {
         const docSyncService = new DocumentSyncService();
-        const repoRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
         const cloneDir = PathResolver.getCloneDir();
-        if (!repoRoot) return;
+        const repoRoot = cloneDir;
+        const token = await TokenManager.getInstance().getToken();
 
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: "正在将云端更新同步到本地工具...",
-            cancellable: false
-        }, async (progress) => {
-            const result = await docSyncService.syncRemoteToLocal(repoRoot, cloneDir, targets);
-            if (result.success) {
-                const now = new Date().toLocaleString();
-                await this.context.globalState.update('agentDna.lastSync', now);
-                vscode.window.showInformationMessage(result.message);
-                this._update();
-            } else {
-                vscode.window.showErrorMessage(result.message);
-            }
-        });
+        try {
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "正在将云端更新同步到本地工具...",
+                cancellable: false
+            }, async () => {
+                const result = await docSyncService.syncRemoteToLocal(repoRoot, cloneDir, targets, token);
+                if (result.success) {
+                    const now = new Date().toLocaleString();
+                    await this.context.globalState.update('agentDna.lastSync', now);
+                    vscode.window.showInformationMessage(result.message);
+                    this._update();
+                } else {
+                    vscode.window.showErrorMessage(result.message);
+                }
+            });
+        } catch (error) {
+            vscode.window.showErrorMessage(`同步失败: ${error}`);
+        }
     }
 
-    private async handleSaveSettings(repoUrl: string, token: string) {
+    private async handleSaveSettings(repoUrl: string, token: string, lastSource?: string) {
         const config = vscode.workspace.getConfiguration('agentDna');
         await config.update('repoUrl', repoUrl, vscode.ConfigurationTarget.Global);
+
+        if (lastSource) {
+            await this.context.globalState.update('agentDna.lastSource', lastSource);
+        }
 
         if (token) {
             await TokenManager.getInstance().setToken(token);
@@ -140,14 +158,16 @@ export class ControlPanelWebview {
         const repoUrl = config.get<string>('repoUrl') || '';
         const token = await TokenManager.getInstance().getToken();
         const lastSync = this.context.globalState.get<string>('agentDna.lastSync') || '从未同步';
+        const lastSource = this.context.globalState.get<'antigravity' | 'claude'>('agentDna.lastSource')
+            || config.get<'antigravity' | 'claude'>('lastSource', 'antigravity');
 
         const toolPathsAg = PathResolver.getToolPaths('antigravity');
         const toolPathsClaude = PathResolver.getToolPaths('claude');
 
-        this._panel.webview.html = this._getHtmlForWebview(repoUrl, token, lastSync, toolPathsAg.skills, toolPathsClaude.skills);
+        this._panel.webview.html = this._getHtmlForWebview(repoUrl, token, lastSync, toolPathsAg.skills, toolPathsClaude.skills, lastSource);
     }
 
-    private _getHtmlForWebview(repoUrl: string, token: string | undefined, lastSync: string, agPath: string, claudePath: string) {
+    private _getHtmlForWebview(repoUrl: string, token: string | undefined, lastSync: string, agPath: string, claudePath: string, lastSource: 'antigravity' | 'claude' = 'antigravity') {
         return `<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -329,8 +349,8 @@ export class ControlPanelWebview {
                     <span class="subtext">当前活动源，用于提取修改并同步到云端。</span>
                     <div class="row-action">
                         <select id="sourceSelect" class="form-control" style="flex: 1;">
-                            <option value="antigravity">Antigravity (Gemini)</option>
-                            <option value="claude">Claude Code (Anthropic)</option>
+                            <option value="antigravity" ${lastSource === 'antigravity' ? 'selected' : ''}>Antigravity (Gemini)</option>
+                            <option value="claude" ${lastSource === 'claude' ? 'selected' : ''}>Claude Code (Anthropic)</option>
                         </select>
                         <button class="btn btn-primary" id="btnSyncLocal" title="提取工具修改 -> 提交 -> 推送云端">同步到云端</button>
                     </div>
@@ -431,7 +451,8 @@ export class ControlPanelWebview {
         document.getElementById('btnSaveSettings').addEventListener('click', () => {
             const repoUrl = document.getElementById('repoUrl').value;
             const token = document.getElementById('token').value;
-            vscode.postMessage({ command: 'saveSettings', repoUrl, token });
+            const lastSource = document.getElementById('sourceSelect').value;
+            vscode.postMessage({ command: 'saveSettings', repoUrl, token, lastSource });
         });
     </script>
 </body>

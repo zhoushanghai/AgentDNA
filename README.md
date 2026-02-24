@@ -1,13 +1,14 @@
 # AgentDNA
 
-> Sync your AI agent's DNA across projects - Rules, Workflows, and Skills
+> Sync your AI agent's DNA across tools with Open Source Standard storage
 
-AgentDNA 是一个 VS Code 插件，用于统一管理和同步 AI 编程工具（如 VS Code, Cursor, Antigravity）的三类全局文档：**Rules (GEMINI.md)**、**Workflows** 和 **Skills**。
+AgentDNA 是一个 VS Code 插件，用于在不同 AI 工具（如 Antigravity / Claude Code）之间同步全局文档，并以 Open Source Standard 作为统一存储格式（`AGENT.md` + `skills/`）。
 
 ## 0.3.0 (v3) 核心变更
 
-- **多文档管理**：支持 Rules、Workflows 和 Skills 的统一同步。
+- **统一存储标准**：仓库层使用 Open Source Standard（`AGENT.md` + `skills/`）。
 - **全局同步模式**：不再分发到各个工作区，而是直接管理本机的全局配置目录（`~/.gemini/`）。
+- **多工具转换**：在 Antigravity 与 Claude Code 的不同命名/目录结构之间双向转换。
 - **强制覆盖模式**：新增「强制推送」功能，允许以本机内容为权威覆盖远程仓库。
 - **跨平台路径解析**：自动适配 Windows、macOS 和 Linux 的全局配置路径。
 
@@ -34,7 +35,6 @@ AgentDNA 是一个 VS Code 插件，用于统一管理和同步 AI 编程工具�
 | 类型 | 路径 (Linux / macOS) | 路径 (Windows) |
 |------|-----------------------|----------------|
 | **Rules** | `~/.gemini/GEMINI.md` | `%USERPROFILE%\.gemini\GEMINI.md` |
-| **Workflows** | `~/.gemini/antigravity/global_workflows/` | `%USERPROFILE%\.gemini\antigravity\global_workflows\` |
 | **Skills** | `~/.gemini/antigravity/skills/` | `%USERPROFILE%\.gemini\antigravity\skills\` |
 
 ## License

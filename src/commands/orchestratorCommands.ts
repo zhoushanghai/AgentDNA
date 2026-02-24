@@ -5,14 +5,14 @@
 import * as vscode from 'vscode';
 import { DocumentSyncService } from '../services/DocumentSyncService';
 import { PathResolver } from '../services/PathResolver';
+import { TokenManager } from '../services/TokenManager';
 
 export async function syncLocalToRemote() {
     const config = vscode.workspace.getConfiguration('agentDna');
     const source = config.get<'antigravity' | 'claude'>('lastSource', 'antigravity');
-    const repoRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
     const cloneDir = PathResolver.getCloneDir();
-
-    if (!repoRoot) return;
+    const repoRoot = cloneDir;
+    const token = await TokenManager.getInstance().getToken();
 
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
@@ -20,7 +20,7 @@ export async function syncLocalToRemote() {
         cancellable: false
     }, async () => {
         const service = new DocumentSyncService();
-        const result = await service.syncLocalToRemote(repoRoot, cloneDir, source, false);
+        const result = await service.syncLocalToRemote(repoRoot, cloneDir, source, false, token);
         if (result.success) {
             vscode.window.showInformationMessage(result.message);
         } else {
@@ -30,10 +30,9 @@ export async function syncLocalToRemote() {
 }
 
 export async function syncRemoteToLocal() {
-    const repoRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
     const cloneDir = PathResolver.getCloneDir();
-
-    if (!repoRoot) return;
+    const repoRoot = cloneDir;
+    const token = await TokenManager.getInstance().getToken();
 
     const targets: ('antigravity' | 'claude')[] = ['antigravity', 'claude']; // Default to both or read from config
 
@@ -43,7 +42,7 @@ export async function syncRemoteToLocal() {
         cancellable: false
     }, async () => {
         const service = new DocumentSyncService();
-        const result = await service.syncRemoteToLocal(repoRoot, cloneDir, targets);
+        const result = await service.syncRemoteToLocal(repoRoot, cloneDir, targets, token);
         if (result.success) {
             vscode.window.showInformationMessage(result.message);
         } else {

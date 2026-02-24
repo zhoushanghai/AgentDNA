@@ -1,4 +1,5 @@
 import simpleGit from 'simple-git';
+import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -88,20 +89,25 @@ export class GitService {
     /**
      * Pull latest changes from remote
      */
-    async pull(repoUrl?: string, token?: string): Promise<void> {
+    async pull(cloneDir?: string, token?: string): Promise<void> {
         const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+        const dir = cloneDir || this.rulesDir;
 
         try {
+            // Get repoUrl from config for authentication
+            const config = vscode.workspace.getConfiguration('agentDna');
+            const repoUrl = config.get<string>('repoUrl');
+
             // Update remote URL if repoUrl and token are provided
-            if (repoUrl) {
+            if (repoUrl && token) {
                 const authenticatedUrl = this.getAuthenticatedUrl(repoUrl, token);
-                await execAsync(`git -C "${this.rulesDir}" remote set-url origin "${authenticatedUrl}"`, { env });
+                await execAsync(`git -C "${dir}" remote set-url origin "${authenticatedUrl}"`, { env });
             }
 
             // Pull
             // Use --rebase to avoid merge commits and handle divergent histories cleaner
             // Use --autostash to temporarily stash local changes if any appear (though usually we commit them)
-            await execAsync(`git -C "${this.rulesDir}" pull --rebase --autostash`, { env });
+            await execAsync(`git -C "${dir}" pull --rebase --autostash`, { env });
         } catch (error: any) {
             const errMsg = error.message || error.stderr || '';
 
@@ -126,6 +132,20 @@ export class GitService {
     }
 
     /**
+     * Get the current origin URL from local git repo
+     */
+    async getRemoteUrl(dir: string): Promise<string | undefined> {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+        try {
+            const result = await execAsync(`git -C "${dir}" remote get-url origin`, { env });
+            const url = result.stdout?.trim();
+            return url || undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
      * Commit changes in the repository
      */
     async commit(dir: string, message: string): Promise<void> {
@@ -137,16 +157,38 @@ export class GitService {
     /**
      * Push changes to remote
      */
-    async push(dir: string): Promise<void> {
+    async push(dir: string, token?: string): Promise<void> {
         const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+
+        // Update remote URL with token if provided
+        if (token) {
+            const config = vscode.workspace.getConfiguration('agentDna');
+            const repoUrl = config.get<string>('repoUrl');
+            if (repoUrl) {
+                const authenticatedUrl = this.getAuthenticatedUrl(repoUrl, token);
+                await execAsync(`git -C "${dir}" remote set-url origin "${authenticatedUrl}"`, { env });
+            }
+        }
+
         await execAsync(`git -C "${dir}" push`, { env });
     }
 
     /**
      * Force push changes to remote
      */
-    async forcePush(dir: string): Promise<void> {
+    async forcePush(dir: string, token?: string): Promise<void> {
         const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+
+        // Update remote URL with token if provided
+        if (token) {
+            const config = vscode.workspace.getConfiguration('agentDna');
+            const repoUrl = config.get<string>('repoUrl');
+            if (repoUrl) {
+                const authenticatedUrl = this.getAuthenticatedUrl(repoUrl, token);
+                await execAsync(`git -C "${dir}" remote set-url origin "${authenticatedUrl}"`, { env });
+            }
+        }
+
         await execAsync(`git -C "${dir}" push --force`, { env });
     }
 
@@ -155,7 +197,7 @@ export class GitService {
      */
     async syncRepo(repoUrl: string, token?: string): Promise<void> {
         if (this.isRepoExists()) {
-            await this.pull(repoUrl, token);
+            await this.pull(undefined, token);
         } else {
             await this.clone(repoUrl, token);
         }
