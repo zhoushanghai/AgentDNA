@@ -2,6 +2,20 @@
 
 All notable changes to the "AgentDNA" extension will be documented in this file.
 
+## [0.3.0]
+
+### Added
+- **Two-Button Sync Mode**: Simplified sync operations with Pull/Push button layout.
+- **Multi-Document Sync**: Enhanced architecture to support synchronizing multiple documents (AGENT.md, GEMINI.md, skills, etc.).
+- **Path Resolution**: Improved path resolution for better cross-platform compatibility.
+
+### Changed
+- **Industrial UI Style**: Rebranded interface with industrial aesthetic (UI refinements pending).
+- **Architecture Refactor**: Complete v3 architecture refactor for improved stability and maintainability.
+
+### Fixed
+- Various bug fixes and stability improvements.
+
 ## [0.2.0]
 
 ### Added

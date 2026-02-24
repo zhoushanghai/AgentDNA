@@ -12,7 +12,7 @@ This document outlines the differences in directory structures and technical spe
 
 ## 1. Specification Overview
 
-| Feature | Open Source Standard (Official) | Antigravity (Gemini) | Claude Code (Anthropic) |
+| Feature | Open Source Standard (Official) | Antigravity (Gemini) |   (Anthropic) |
 | :--- | :--- | :--- | :--- |
 | **Project Path** | Flexible (Usually in project) | `.agent/skills/` | `.claude/skills/` |
 | **Global Path** | N/A | `~/.gemini/antigravity/skills/` | `~/.claude/skills/` |

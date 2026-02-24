@@ -2,7 +2,7 @@
   "name": "agent-dna",
   "displayName": "AgentDNA",
   "description": "Sync your AI agent's DNA across projects - share AGENT.md rules via GitHub",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "HaizhouWang",
   "repository": {
     "type": "git",
@@ -69,6 +69,7 @@
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.x",
     "@typescript-eslint/parser": "^6.x",
+    "@vscode/vsce": "^3.7.1",
     "eslint": "^8.x",
     "typescript": "^4.9.5"
   },
